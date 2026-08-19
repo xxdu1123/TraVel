@@ -1,0 +1,3585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🧳 J人旅行攻略生成器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;background:#f5f3fa;color:#333;min-height:100vh;}
+.app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;position:relative;padding-bottom:80px;box-shadow:0 0 20px rgba(0,0,0,0.05);}
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:20px 16px 24px;border-radius:0 0 24px 24px;position:sticky;top:0;z-index:100;}
+.header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.header .subtitle{font-size:12px;opacity:0.85;margin-top:4px;}
+.steps{display:flex;justify-content:space-between;margin-top:16px;gap:4px;}
+.step{flex:1;text-align:center;}
+.step-num{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;margin-bottom:4px;}
+.step.active .step-num{background:#fff;color:#764ba2;}
+.step.done .step-num{background:#4ade80;color:#fff;}
+.step-label{font-size:10px;opacity:0.9;}
+.step.done .step-label,.step.active .step-label{opacity:1;}
+
+.main{padding:16px;}
+.section-title{font-size:16px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.section-title .num{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;}
+
+.selected-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:12px;background:#f5f3fa;border-radius:12px;min-height:44px;}
+.selected-tags:empty::before{content:'还没有选择城市哦～点击下方省份卡片开始';color:#999;font-size:13px;}
+.city-tag{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:6px 10px 6px 12px;border-radius:20px;font-size:12px;display:inline-flex;align-items:center;gap:6px;animation:fadeIn 0.3s;}
+.city-tag .remove{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.3);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
+
+.search-box{display:flex;gap:8px;margin-bottom:16px;}
+.search-box input{flex:1;padding:10px 14px;border:2px solid #e8e4f0;border-radius:12px;font-size:14px;outline:none;transition:all 0.3s;}
+.search-box input:focus{border-color:#764ba2;}
+.search-box button{padding:10px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.loading-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.province-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.province-card{padding:14px 8px;background:#fff;border:2px solid #e8e4f0;border-radius:14px;text-align:center;cursor:pointer;transition:all 0.25s;font-size:13px;font-weight:600;color:#555;}
+.province-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(118,75,162,0.15);}
+.province-card.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent;}
+.back-btn{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;background:#f5f3fa;border:none;border-radius:20px;font-size:12px;color:#764ba2;cursor:pointer;margin-bottom:12px;font-weight:600;}
+
+.city-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.city-card{padding:12px 6px;background:#fff;border:2px solid #e8e4f0;border-radius:12px;text-align:center;cursor:pointer;transition:all 0.25s;font-size:12px;position:relative;}
+.city-card:hover{border-color:#764ba2;}
+.city-card.selected{background:linear-gradient(135deg,#eef0ff,#f3ebff);border-color:#764ba2;color:#764ba2;font-weight:600;}
+.city-card .check{position:absolute;top:4px;right:4px;width:18px;height:18px;background:#764ba2;color:#fff;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
+
+.tabs{display:flex;background:#f5f3fa;border-radius:12px;padding:4px;margin-bottom:16px;gap:4px;}
+.tab{flex:1;padding:10px;text-align:center;font-size:13px;border-radius:10px;cursor:pointer;color:#666;font-weight:500;transition:all 0.2s;}
+.tab.active{background:#fff;color:#764ba2;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+
+.city-panel{background:#fff;border:2px solid #e8e4f0;border-radius:16px;padding:14px;margin-bottom:14px;}
+.city-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f0ecf5;}
+.city-panel-title{font-size:15px;font-weight:700;color:#333;display:flex;align-items:center;gap:6px;}
+.remove-city{color:#ff6b6b;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:8px;}
+.remove-city:hover{background:#fff0f0;}
+
+.sight-list{display:flex;flex-direction:column;gap:10px;}
+.sight-item{display:flex;gap:10px;padding:10px;background:#faf8ff;border-radius:10px;align-items:flex-start;}
+.checkbox{width:20px;height:20px;border:2px solid #d4cce0;border-radius:50%;flex-shrink:0;cursor:pointer;position:relative;top:2px;transition:all 0.2s;}
+.checkbox.checked{background:linear-gradient(135deg,#667eea,#764ba2);border-color:transparent;}
+.checkbox.checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:12px;font-weight:bold;}
+.sight-info{flex:1;}
+.sight-name{font-size:13px;font-weight:600;color:#333;}
+.sight-meta{font-size:11px;color:#888;margin-top:4px;display:flex;flex-wrap:wrap;gap:8px;}
+.sight-meta span{display:inline-flex;align-items:center;gap:2px;}
+.sight-tip{font-size:11px;color:#764ba2;margin-top:4px;background:#f3ebff;padding:4px 8px;border-radius:6px;}
+.sight-duration{background:#fff;padding:2px 6px;border-radius:4px;color:#667eea;font-weight:600;}
+.sight-price{background:#fff;padding:2px 6px;border-radius:4px;color:#f59e0b;font-weight:600;}
+
+.food-item{display:flex;align-items:center;gap:10px;padding:10px;background:#fff8f0;border-radius:10px;}
+.food-name{font-size:13px;font-weight:600;color:#333;}
+.food-desc{font-size:11px;color:#888;margin-top:2px;}
+
+.area-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.area-card{padding:12px;background:#faf8ff;border:2px solid #e8e4f0;border-radius:10px;cursor:pointer;transition:all 0.2s;}
+.area-card.selected{border-color:#764ba2;background:#f3ebff;}
+.area-name{font-size:13px;font-weight:600;color:#333;}
+.area-desc{font-size:11px;color:#888;margin-top:4px;}
+
+.config-section{margin-bottom:16px;}
+.config-label{font-size:13px;font-weight:600;color:#555;margin-bottom:8px;}
+.days-config{display:flex;align-items:center;gap:12px;background:#f5f3fa;padding:10px 14px;border-radius:10px;}
+.days-label{font-size:13px;color:#555;flex-shrink:0;}
+.days-btns{display:flex;align-items:center;gap:10px;}
+.day-btn{width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid #e8e4f0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;font-weight:600;color:#764ba2;}
+.day-btn:active{background:#f3ebff;}
+.day-count{font-size:18px;font-weight:700;color:#764ba2;min-width:30px;text-align:center;}
+
+.budget-tabs{display:flex;background:#f5f3fa;border-radius:12px;padding:4px;gap:4px;}
+.budget-tab{flex:1;padding:12px 8px;text-align:center;border-radius:10px;cursor:pointer;font-size:12px;transition:all 0.2s;}
+.budget-tab.active{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.08);font-weight:700;}
+.budget-tab .emoji{font-size:20px;display:block;margin-bottom:4px;}
+.budget-tab .label{color:#666;}
+.budget-tab.active .label{color:#764ba2;}
+.budget-tab.cheap.active{background:linear-gradient(135deg,#d1fae5,#a7f3d0);}
+.budget-tab.cheap.active .label{color:#059669;}
+.budget-tab.mid.active{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}
+.budget-tab.mid.active .label{color:#2563eb;}
+.budget-tab.comfort.active{background:linear-gradient(135deg,#fce7f3,#fbcfe8);}
+.budget-tab.comfort.active .label{color:#db2777;}
+
+.generate-btn{width:100%;padding:16px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(118,75,162,0.4);transition:all 0.2s;margin-top:16px;}
+.generate-btn:active{transform:scale(0.98);}
+.generate-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+.result-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:20px 16px;border-radius:0 0 24px 24px;margin-bottom:16px;}
+.result-header h2{font-size:18px;margin-bottom:8px;}
+.result-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;}
+.summary-item{background:rgba(255,255,255,0.2);padding:10px 6px;border-radius:10px;}
+.summary-value{font-size:18px;font-weight:700;}
+.summary-label{font-size:10px;opacity:0.9;margin-top:2px;}
+
+.day-card{background:#fff;border:2px solid #e8e4f0;border-radius:16px;margin-bottom:14px;overflow:hidden;}
+.day-header{background:linear-gradient(135deg,#f3ebff,#eef0ff);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;}
+.day-title{font-size:14px;font-weight:700;color:#764ba2;}
+.day-city{font-size:12px;background:#fff;padding:4px 10px;border-radius:20px;color:#667eea;font-weight:600;}
+.transit-header{background:linear-gradient(135deg,#fef3c7,#fde68a);padding:12px 14px;}
+.transit-header .day-title{color:#92400e;}
+.transit-header .day-city{background:#fff;color:#d97706;}
+
+.time-line{padding:14px;position:relative;}
+.time-line::before{content:'';position:absolute;left:34px;top:20px;bottom:20px;width:2px;background:linear-gradient(to bottom,#e8e4f0,#f5f3fa);}
+.time-item{display:flex;gap:12px;margin-bottom:14px;position:relative;}
+.time-item:last-child{margin-bottom:0;}
+.time-badge{width:54px;flex-shrink:0;text-align:center;}
+.time-value{font-size:13px;font-weight:700;color:#764ba2;background:#f3ebff;padding:4px 6px;border-radius:6px;}
+.time-icon{width:20px;height:20px;background:#fff;border:2px solid #764ba2;border-radius:50%;margin:6px auto 0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;font-size:10px;}
+.time-content{flex:1;padding:10px 12px;background:#faf8ff;border-radius:10px;border:1px solid #f0ecf5;}
+.time-content.checked{background:#f0fdf4;border-color:#bbf7d0;}
+.time-title{font-size:13px;font-weight:600;color:#333;display:flex;align-items:center;gap:6px;}
+.time-desc{font-size:11px;color:#888;margin-top:4px;}
+.time-cost{font-size:11px;color:#f59e0b;margin-top:4px;font-weight:600;}
+
+.pitfalls-card{background:#fff8f0;border:2px solid #fde68a;border-radius:16px;padding:14px;margin-bottom:14px;}
+.pitfalls-title{font-size:14px;font-weight:700;color:#92400e;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.pitfall-item{font-size:12px;color:#78350f;padding:8px 10px;background:#fef3c7;border-radius:8px;margin-bottom:6px;line-height:1.5;}
+.pitfall-item:last-child{margin-bottom:0;}
+.pitfall-item::before{content:'⚠️ ';margin-right:2px;}
+
+.luggage-card{background:#fff;border:2px solid #e8e4f0;border-radius:16px;padding:14px;margin-bottom:14px;}
+.luggage-title{font-size:14px;font-weight:700;color:#333;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.luggage-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.luggage-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#faf8ff;border-radius:8px;font-size:12px;}
+
+.budget-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border-radius:16px;padding:16px;margin-bottom:14px;}
+.budget-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.budget-breakdown{display:flex;flex-direction:column;gap:8px;}
+.budget-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.15);}
+.budget-row:last-child{border-bottom:none;}
+.budget-total{display:flex;justify-content:space-between;font-size:18px;font-weight:700;margin-top:12px;padding-top:12px;border-top:2px solid rgba(255,255,255,0.3);}
+
+.footer-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:#fff;border-top:1px solid #e8e4f0;padding:10px 16px;display:flex;gap:10px;z-index:100;}
+.footer-nav button{flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;}
+.btn-prev{background:#f5f3fa;color:#764ba2;}
+.btn-next{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;}
+.btn-next:disabled{opacity:0.4;cursor:not-allowed;}
+
+.template-guide{padding:12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;margin-bottom:10px;}
+.template-guide-title{font-size:13px;font-weight:700;color:#065f46;margin-bottom:6px;display:flex;align-items:center;gap:4px;}
+.template-guide-desc{font-size:12px;color:#047857;line-height:1.6;}
+
+.empty-state{text-align:center;padding:40px 20px;color:#999;}
+.empty-state .icon{font-size:48px;margin-bottom:12px;}
+.empty-state .text{font-size:14px;}
+
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;z-index:9999;animation:toastIn 0.3s;}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,-40%);}to{opacity:1;transform:translate(-50%,-50%);}}
+
+.page{display:none;animation:pageSlide 0.3s;}
+.page.active{display:block;}
+@keyframes pageSlide{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:translateX(0);}}
+
+input[type="checkbox"]{display:none;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+</div>
+
+<script>
+const PROVINCES = [
+  {key:'beijing',name:'北京',cities:['beijing']},
+  {key:'tianjin',name:'天津',cities:['tianjin']},
+  {key:'shanghai',name:'上海',cities:['shanghai']},
+  {key:'chongqing',name:'重庆',cities:['chongqing']},
+  {key:'hebei',name:'河北',cities:['shijiazhuang','qinhuangdao','chengde','zhangjiakou','tangshan','baoding']},
+  {key:'shanxi',name:'山西',cities:['taiyuan','datong','pingyao','xinzhou']},
+  {key:'shandong',name:'山东',cities:['jinan','qingdao','yantai','weihai','rizhao','taian','jining']},
+  {key:'henan',name:'河南',cities:['zhengzhou','luoyang','kaifeng','anyang','jiaozuo']},
+  {key:'jiangsu',name:'江苏',cities:['nanjing','suzhou','wuxi','yangzhou','zhenjiang','xuzhou','changzhou']},
+  {key:'zhejiang',name:'浙江',cities:['hangzhou','ningbo','wenzhou','huzhou','jiaxing','shaoxing','jinhua','quzhou','taizhou','zhoushan']},
+  {key:'anhui',name:'安徽',cities:['hefei','huangshan','chizhou']},
+  {key:'fujian',name:'福建',cities:['fuzhou','xiamen','quanzhou','nanping','longyan']},
+  {key:'jiangxi',name:'江西',cities:['nanchang','jiujiang','jingdezhen','shangrao','jian','ganzhou']},
+  {key:'hubei',name:'湖北',cities:['wuhan','yichang','shiyan','enshi']},
+  {key:'hunan',name:'湖南',cities:['changsha','zhangjiajie','hengyang','xiangtan','yueyang','chenzhou']},
+  {key:'guangdong',name:'广东',cities:['guangzhou','shenzhen','zhuhai','foshan']},
+  {key:'guangxi',name:'广西',cities:['guilin','nanning','beihai']},
+  {key:'yunnan',name:'云南',cities:['kunming','dali','lijiang','shangrila','xishuangbanna','baoshan']},
+  {key:'shaanxi',name:'陕西',cities:['xian','yanan']},
+  {key:'gansu',name:'甘肃',cities:['lanzhou','dunhuang','jiayuguan','zhangye']},
+  {key:'qinghai',name:'青海',cities:['xining','haixi']},
+  {key:'ningxia',name:'宁夏',cities:['yinchuan','zhongwei']},
+  {key:'xinjiang',name:'新疆',cities:['urumqi','kashi','yili','aletai','tulufan']},
+  {key:'xizang',name:'西藏',cities:['lhasa','linzhi']},
+  {key:'neimenggu',name:'内蒙古',cities:['hohhot']},
+  {key:'heilongjiang',name:'黑龙江',cities:['harbin']},
+  {key:'jilin',name:'吉林',cities:['changchun']},
+  {key:'liaoning',name:'辽宁',cities:['shenyang','dalian']},
+  {key:'guizhou',name:'贵州',cities:['guiyang','zunyi']},
+  {key:'sichuan',name:'四川',cities:['chengdu','leshan','emeishan','jiuzhaigou']},
+  {key:'hainan',name:'海南',cities:['haikou','sanya']}
+];
+
+const CITY_ALIASES = {
+  '北戴河':'qinhuangdao','秦皇岛':'qinhuangdao','秦皇岛北戴河':'qinhuangdao',
+  '五台山':'xinzhou','忻州五台山':'xinzhou',
+  '曲阜':'jining','济宁曲阜':'jining',
+  '云台山':'jiaozuo','焦作云台山':'jiaozuo',
+  '武夷山':'nanping','南平武夷山':'nanping',
+  '永定土楼':'longyan','龙岩永定土楼':'longyan',
+  '庐山':'jiujiang','九江庐山':'jiujiang',
+  '婺源':'shangrao','上饶婺源':'shangrao',
+  '井冈山':'jian','吉安井冈山':'jian',
+  '三峡':'yichang','宜昌三峡':'yichang',
+  '武当山':'shiyan','十堰武当山':'shiyan',
+  '张家界':'zhangjiajie','张家界':'zhangjiajie',
+  '衡山':'hengyang','衡阳衡山':'hengyang',
+  '韶山':'xiangtan','湘潭韶山':'xiangtan',
+  '东江湖':'chenzhou','郴州东江湖':'chenzhou',
+  '阳朔':'guilin','桂林阳朔':'guilin',
+  '香格里拉':'shangrila','西双版纳':'xishuangbanna',
+  '腾冲':'baoshan','保山腾冲':'baoshan',
+  '敦煌':'dunhuang','嘉峪关':'jiayuguan','张掖':'zhangye',
+  '茶卡':'haixi','青海湖':'haixi','茶卡盐湖':'haixi','海西茶卡青海湖':'haixi',
+  '沙坡头':'zhongwei','中卫沙坡头':'zhongwei',
+  '喀纳斯':'aletai','阿勒泰喀纳斯':'aletai',
+  '伊犁':'yili','喀什':'kashi','吐鲁番':'tulufan',
+  '林芝':'linzhi','呼和浩特':'hohhot',
+  '哈尔滨':'harbin','长春':'changchun','沈阳':'shenyang','大连':'dalian',
+  '贵阳':'guiyang','遵义':'zunyi'
+};
+
+const CITY_DATA = {
+beijing:{name:'北京',sights:[
+{name:'天安门广场',duration:'1.5小时',price:'免费',traffic:'地铁1号线天安门东/西站',tip:'建议早上去看升旗仪式，需提前预约'},
+{name:'故宫博物院',duration:'3-4小时',price:'旺季60元/淡季40元',traffic:'地铁1号线天安门东站',tip:'提前官网预约，周一闭馆'},
+{name:'长城(八达岭)',duration:'4-5小时',price:'旺季45元/淡季40元',traffic:'德胜门乘877路公交',tip:'建议早上早出发避开人流，穿舒适鞋'},
+{name:'颐和园',duration:'3-4小时',price:'旺季30元/淡季20元',traffic:'地铁4号线北宫门站',tip:'从北宫门进入比较省力'},
+{name:'天坛公园',duration:'2小时',price:'联票旺季34元/淡季28元',traffic:'地铁5号线天坛东门站',tip:'祈年殿和回音壁是必看'},
+{name:'圆明园遗址公园',duration:'2.5小时',price:'25元(含西洋楼)',traffic:'地铁4号线圆明园站',tip:'了解历史很有意义'},
+{name:'南锣鼓巷',duration:'2小时',price:'免费',traffic:'地铁6/8号线南锣鼓巷站',tip:'巷子热闹但商品较贵'},
+{name:'798艺术区',duration:'3小时',price:'免费',traffic:'地铁14号线将台站',tip:'文艺拍照好去处'},
+{name:'什刹海(后海)',duration:'2小时',price:'免费',traffic:'地铁8号线什刹海站',tip:'晚上酒吧街很热闹'},
+{name:'鸟巢(国家体育场)',duration:'1.5小时',price:'50元',traffic:'地铁8/15号线奥林匹克公园站',tip:'晚上亮灯更漂亮'},
+{name:'恭王府',duration:'2小时',price:'40元',traffic:'地铁6号线北海北站',tip:'和珅府邸，"一座恭王府半部清朝史"'},
+{name:'景山公园',duration:'1小时',price:'2元',traffic:'地铁8号线中国美术馆站',tip:'登顶俯瞰故宫全景'}
+],foods:[
+{name:'北京烤鸭',desc:'全聚德/大董/四季民福，皮脆肉嫩'},
+{name:'炸酱面',desc:'海碗居、方砖厂69号，酱香浓郁'},
+{name:'豆汁儿+焦圈',desc:'老北京早餐，味道独特'},
+{name:'卤煮火烧',desc:'门框胡同百年卤煮，内脏爱好者福音'},
+{name:'涮羊肉',desc:'东来顺/聚宝源，铜锅清汤配麻酱'},
+{name:'驴打滚/艾窝窝',desc:'护国寺小吃，传统宫廷点心'}
+],areas:[
+{name:'王府井/天安门',desc:'交通便利，近主要景点'},
+{name:'西单/金融街',desc:'购物方便，地铁发达'},
+{name:'三里屯/国贸',desc:'时尚商圈，夜生活丰富'},
+{name:'南锣鼓巷/后海',desc:'胡同文化，文艺气息'}
+],budget:{cheap:400,mid:800,comfort:1500},
+pitfalls:[
+'不要在长城脚下买"野导"服务，很多是坑',
+'故宫门票一定要提前官网预约，现场买不到',
+'天安门看升旗要提前查好时间，一般提前1小时到',
+'南锣鼓巷小吃贵还不正宗，本地人不去',
+'地铁站内乞讨、推销的别理，都是套路',
+'出租车不打表的坚决不坐，用网约车更靠谱'
+],luggage:[
+'身份证(必带，景点全要)','舒适的运动鞋(走路巨多)','充电宝(拍景耗电快)',
+'防晒霜+太阳帽(夏天暴晒)','保温杯(北方干燥多喝水)','便携雨伞(天气多变)',
+'少量现金(部分老店只收现金)'
+]},
+tianjin:{name:'天津',sights:[
+{name:'天津之眼',duration:'1小时',price:'100元',traffic:'地铁1号线西北角站',tip:'世界唯一建在桥上的摩天轮'},
+{name:'五大道',duration:'2.5小时',price:'免费',traffic:'地铁1号线小白楼站',tip:'租自行车骑行游览'},
+{name:'意大利风情区',duration:'2小时',price:'免费',traffic:'地铁2号线建国道站',tip:'夜景灯光很漂亮'},
+{name:'古文化街',duration:'2小时',price:'免费',traffic:'地铁2号线东南角站',tip:'可以买到泥人张、杨柳青年画'},
+{name:'瓷房子',duration:'1小时',price:'60元',traffic:'地铁3号线和平路站',tip:'用古董瓷片装修的法式建筑'},
+{name:'南开大学',duration:'1.5小时',price:'免费',traffic:'地铁3号线天塔站',tip:'周总理母校，感受校园氛围'},
+{name:'解放桥',duration:'1小时',price:'免费',traffic:'地铁3号线津湾广场站',tip:'百年老桥，夜晚灯光秀'},
+{name:'世纪钟广场',duration:'0.5小时',price:'免费',traffic:'地铁3号线津湾广场站',tip:'天津地标，打卡拍照'}
+],foods:[
+{name:'煎饼果子',desc:'绿豆面配薄脆，正宗老味'},
+{name:'狗不理包子',desc:'十八个褶，但本地人不常吃'},
+{name:'麻花(十八街)',desc:'酥脆香甜，真空包装可带走'},
+{name:'耳朵眼炸糕',desc:'外酥里糯，豆沙馅甜而不腻'},
+{name:'锅巴菜',desc:'天津特色早餐，配卤子吃'},
+{name:'海鲜',desc:'北塘海鲜，皮皮虾正当季时超肥'
+}],areas:[
+{name:'滨江道/和平路',desc:'市中心商圈，购物方便'},
+{name:'五大道/小白楼',desc:'环境优雅，近景点'},
+{name:'天津站/意风区',desc:'交通便利，适合短期停留'},
+{name:'南开/天大',desc:'高校周边，性价比高'}
+],budget:{cheap:300,mid:600,comfort:1200},
+pitfalls:[
+'天津之眼排队很长，建议提前网上购票',
+'狗不理包子名气大但性价比不高，本地人更爱张记包子铺',
+'古文化街东西贵，买特产建议去超市',
+'海河游船建议晚上坐，灯光好看很多',
+'打车注意绕路，天津单行道多导航都懵',
+'煎饼果子加火腿的都不正宗，正宗的只有鸡蛋+果子/果篦'
+],luggage:[
+'身份证','舒适运动鞋','充电宝',
+'防晒霜','雨伞(多雨季)','薄外套(海边风大)',
+'便携水杯'
+]},
+shanghai:{name:'上海',sights:[
+{name:'外滩',duration:'2小时',price:'免费',traffic:'地铁2/10号线南京东路站',tip:'晚上19:00后灯光全开最美'},
+{name:'东方明珠',duration:'2小时',price:'220元(联票)',traffic:'地铁2号线陆家嘴站',tip:'透明悬空走廊很刺激'},
+{name:'豫园',duration:'2小时',price:'旺季40元/淡季30元',traffic:'地铁10/14号线豫园站',tip:'江南古典园林，值得一看'},
+{name:'南京路步行街',duration:'2小时',price:'免费',traffic:'地铁2/10号线南京东路站',tip:'中华商业第一街'},
+{name:'上海迪士尼',duration:'全天',price:'435-759元',traffic:'地铁11号线迪士尼站',tip:'建议工作日去，买早享卡'},
+{name:'田子坊',duration:'2小时',price:'免费',traffic:'地铁9号线打浦桥站',tip:'文艺弄堂，小店很多'},
+{name:'上海博物馆',duration:'2.5小时',price:'免费(需预约)',traffic:'地铁1/2/8号线人民广场站',tip:'青铜器和陶瓷馆超精彩'},
+{name:'思南公馆',duration:'1.5小时',price:'免费',traffic:'地铁10号线新天地站',tip:'老洋房建筑群，很出片'},
+{name:'朱家角古镇',duration:'3小时',price:'免费(联票60元)',traffic:'地铁17号线朱家角站',tip:'上海威尼斯，建议下午去看夜景'},
+{name:'武康路',duration:'1.5小时',price:'免费',traffic:'地铁10/11号线交通大学站',tip:'网红武康大楼，梧桐大道漫步'}
+],foods:[
+{name:'小笼包',desc:'南翔小笼、鼎泰丰，皮薄汁多'},
+{name:'生煎包',desc:'大壶春、小杨生煎，底脆馅鲜'},
+{name:'本帮红烧肉',desc:'老吉士、兰心餐厅，浓油赤酱'},
+{name:'葱油拌面',desc:'味香浓郁，老上海味道'},
+{name:'蟹壳黄',desc:'城隍庙小吃，酥脆咸香'},
+{name:'白斩鸡',desc:'振鼎鸡、小绍兴，皮滑肉嫩'}
+],areas:[
+{name:'外滩/南京路',desc:'市中心，近核心景点'},
+{name:'陆家嘴/浦东',desc:'金融中心，夜景一流'},
+{name:'人民广场/淮海路',desc:'地铁枢纽，购物天堂'},
+{name:'田子坊/新天地',desc:'文艺小资，美食聚集'}
+],budget:{cheap:450,mid:900,comfort:1800},
+pitfalls:[
+'外滩观光隧道千万别去，贵还无聊，不如坐地铁2号线过江',
+'豫园小吃贵还不正宗，去旁边的老街吃',
+'东方明珠排队超长，建议买快速通道票或晚上去',
+'南京路步行街尽头的"奥特莱斯"都是假的',
+'出租车在市中心不好打，用滴滴或地铁更方便',
+'迪士尼一定要早去！买早享卡值回票价，别买门口的雨衣(里面免费领)'
+],luggage:[
+'身份证(迪士尼+博物馆都要)','舒适运动鞋','大容量充电宝',
+'防晒霜/遮阳伞','轻薄外套(空调冷)','雨伞(上海多雨)',
+'小零食+水(乐园里贵)'
+]},
+chongqing:{name:'重庆',sights:[
+{name:'洪崖洞',duration:'2小时',price:'免费',traffic:'地铁6号线小什字站',tip:'晚上20:00灯光最美，千厮门大桥拍全景'},
+{name:'解放碑',duration:'1.5小时',price:'免费',traffic:'地铁2号线临江门站',tip:'重庆地标，购物美食天堂'},
+{name:'长江索道',duration:'0.5小时',price:'20元(单程)',traffic:'地铁1/6号线小什字站',tip:'提前公众号预约，南站人少'},
+{name:'磁器口古镇',duration:'2.5小时',price:'免费',traffic:'地铁1号线磁器口站',tip:'陈麻花、酸辣粉、火锅底料'},
+{name:'李子坝轻轨',duration:'1小时',price:'免费',traffic:'地铁2号线李子坝站',tip:'轻轨穿楼，A出口观景台拍'},
+{name:'武隆天生三桥',duration:'全天',price:'旺季125元/淡季95元',traffic:'重庆北站坐大巴约2小时',tip:'变形金刚取景地，壮观'},
+{name:'南山一棵树',duration:'1.5小时',price:'30元',traffic:'乘公交384路',tip:'俯瞰重庆全景，日落时分去'},
+{name:'大足石刻',duration:'4小时',price:'旺季115元/淡季90元',traffic:'菜园坝/陈家坪汽车站乘大巴',tip:'世界文化遗产，必看宝顶山'},
+{name:'十八梯',duration:'2小时',price:'免费',traffic:'地铁1/2号线较场口站',tip:'老重庆记忆，改造后很有味道'},
+{name:'白象居',duration:'1小时',price:'免费',traffic:'地铁1号线小什字站',tip:'老居民楼，电影取景地'}
+],foods:[
+{name:'重庆火锅',desc:'佩姐、周师兄、地瓜老火锅，麻辣鲜香'},
+{name:'重庆小面',desc:'花市豌杂面、板凳面庄，早餐必备'},
+{name:'酸辣粉',desc:'好又来酸辣粉，磁器口必吃'},
+{name:'毛血旺',desc:'麻辣鲜香，猪血毛肚豆芽一锅端'},
+{name:'辣子鸡',desc:'歌乐山辣子鸡，麻辣干香'},
+{name:'抄手',desc:'老麻抄手，红油老麻过瘾'
+}],areas:[
+{name:'解放碑/洪崖洞',desc:'核心景区，步行可达景点'},
+{name:'江北嘴/观音桥',desc:'新城区，商圈繁华'},
+{name:'沙坪坝/磁器口',desc:'高校多，近磁器口古镇'},
+{name:'南滨路',desc:'江景房，看渝中夜景一流'}
+],budget:{cheap:300,mid:600,comfort:1200},
+pitfalls:[
+'长江索道北站(小什字)排队巨长，去南站(上新街)坐！人少还便宜',
+'洪崖洞别从一楼走进去，上到千厮门大桥拍全景才是王道',
+'磁器口麻花别买排队最长那家，旁边陈建平麻花一样正宗',
+'重庆出租车叫"拓儿车"，司机开得飞起，系好安全带',
+'导航在重庆经常失灵，多问本地人，看楼层标识',
+'火锅不用去网红店，居民区随便一家老火锅都好吃，微微辣就够了！'
+],luggage:[
+'身份证','舒适运动鞋(爬坡上坎巨多)','充电宝',
+'防晒霜(夏天火炉)','肠胃药(吃辣必备)','便携雨伞(多雾多雨)',
+'薄外套(空调冷+江边风大)'
+]},
+shijiazhuang:{name:'石家庄',sights:[
+{name:'正定古城',duration:'3小时',price:'免费',traffic:'石家庄站乘地铁1号线转公交',tip:'隆兴寺、赵云庙、荣国府联游'},
+{name:'隆兴寺',duration:'2小时',price:'50元',traffic:'正定县内打车',tip:'千手观音、倒坐观音超震撼'},
+{name:'赵州桥',duration:'1.5小时',price:'40元',traffic:'南焦客运站乘大巴',tip:'世界第一石拱桥，隋代建造'},
+{name:'荣国府',duration:'1.5小时',price:'40元',traffic:'正定县内',tip:'87版红楼梦取景地'},
+{name:'西柏坡',duration:'3小时',price:'免费',traffic:'汽车北站乘大巴',tip:'革命圣地，五大书记故居'},
+{name:'抱犊寨',duration:'3.5小时',price:'旺季65元/淡季30元',traffic:'新百广场乘旅游5路',tip:'登顶长城俯瞰平原'},
+{name:'河北省博物院',duration:'2.5小时',price:'免费(需预约)',traffic:'地铁1号线博物院站',tip:'中山靖王刘胜金缕玉衣'},
+{name:'苍岩山',duration:'4小时',price:'70元',traffic:'西王客运站乘大巴',tip:'卧虎藏龙取景地，桥楼殿悬空'
+}],foods:[
+{name:'安徽板面',desc:'石家庄板面才是正宗，辣过瘾'},
+{name:'缸炉烧饼',desc:'芝麻酥脆，配羊肉汤绝了'},
+{name:'栾城熏肉',desc:'肥而不腻，老字号'},
+{name:'正定八大碗',desc:'传统宴席，四荤四素'},
+{name:'金凤扒鸡',desc:'百年老字号，整鸡脱骨'},
+{name:'藁城宫面',desc:'空心挂面，细腻爽滑'
+}],areas:[
+{name:'石家庄火车站',desc:'交通枢纽，出行方便'},
+{name:'正定古城',desc:'景点集中，古韵浓厚'},
+{name:'北国商圈',desc:'市中心购物便利'},
+{name:'高新区',desc:'新城区，酒店较新'
+}],budget:{cheap:250,mid:500,comfort:900},
+pitfalls:[
+'正定景点很分散，建议打滴滴拼车比较方便',
+'赵州桥景区比较小，顺路去就行，不值得专门跑',
+'石家庄夏天超热，避开7-8月正午出行',
+'西柏坡距离市区远，建议早出发，带足水',
+'火车站周边拉客住宿别去，环境差',
+'河北博物院周一闭馆，提前预约'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜(夏天暴晒)','雨伞','薄外套',
+'水杯(北方干燥)'
+]},
+qinhuangdao:{name:'秦皇岛(北戴河)',sights:[
+{name:'鸽子窝公园',duration:'2小时',price:'25元',traffic:'北戴河乘公交34路',tip:'看日出圣地，赶海拾贝'},
+{name:'老虎石海上公园',duration:'2小时',price:'8元',traffic:'北戴河乘公交22路',tip:'沙滩细腻，海边漫步'},
+{name:'山海关(天下第一关)',duration:'2.5小时',price:'40元',traffic:'乘公交25路/33路',tip:'明长城东起点，气势恢宏'},
+{name:'老龙头',duration:'2小时',price:'50元',traffic:'山海关乘公交25路',tip:'长城入海处，澄海楼登高望海'},
+{name:'北戴河海滨浴场',duration:'3小时+',price:'各浴场不同',traffic:'公交15路/34路',tip:'中海滩、浅水湾人少水好'},
+{name:'碧螺塔海上酒吧公园',duration:'3小时',price:'100元',traffic:'北戴河乘公交15路',tip:'海边酒吧+演出，夜生活丰富'},
+{name:'孟姜女庙',duration:'1小时',price:'30元',traffic:'山海关乘公交302路',tip:'孟姜女哭长城故事'},
+{name:'黄金海岸',duration:'4小时',price:'免费',traffic:'昌黎县打车',tip:'沙丘+大海，翡翠岛风景美'}
+],foods:[
+{name:'海鲜大咖',desc:'皮皮虾、梭子蟹、花蛤正当季时必吃'},
+{name:'四条包子',desc:'山海关老字号，皮薄馅大'},
+{name:'杨肠子火腿肠',desc:'北戴河特产，熏香浓郁'},
+{name:'麻酱烧饼',desc:'酥脆多层，配羊汤'},
+{name:'回记绿豆糕',desc:'山海关百年老店，入口即化'},
+{name:'蒸焖子',desc:'秦皇岛特色，凉拌热炒皆宜'}
+],areas:[
+{name:'北戴河海滨',desc:'近各大海滩，避暑首选'},
+{name:'山海关古城',desc:'近长城景点，古韵十足'},
+{name:'海港区',desc:'市中心，交通便利'},
+{name:'南戴河',desc:'人少安静，度假首选'}
+],budget:{cheap:300,mid:600,comfort:1200},
+pitfalls:[
+'海鲜不要在海边大排档吃，去石塘路市场买了让酒店加工',
+'七八月份是旺季，酒店价格翻倍，提前订',
+'不要买路边的"野生海参"，基本都是假的',
+'沙滩租遮阳伞很贵，自己带把大伞',
+'天下第一关别只看城门，里面的长城博物馆值得看',
+'防晒！海边紫外线超强，SPF50+起步'
+],luggage:[
+'身份证','泳衣泳裤','高倍防晒霜',
+'遮阳帽/墨镜','拖鞋/沙滩鞋','换洗衣物多套(海水+出汗)',
+'肠胃药(吃海鲜必备)','便携防水袋'
+]},
+chengde:{name:'承德',sights:[
+{name:'避暑山庄',duration:'4-5小时',price:'旺季145元/淡季90元',traffic:'市区打车',tip:'中国最大皇家园林，分宫殿区+湖区+山区'},
+{name:'普陀宗乘之庙(小布达拉宫)',duration:'2小时',price:'旺季80元/淡季60元',traffic:'公交118路',tip:'仿布达拉宫建造，气势恢宏'},
+{name:'普宁寺',duration:'1.5小时',price:'旺季80元/淡季60元',traffic:'公交6路',tip:'世界最大金漆木雕千手观音'},
+{name:'磬锤峰(棒槌山)',duration:'3小时',price:'50元(含索道)',traffic:'公交10路',tip:'丹霞地貌，棒槌石奇特'},
+{name:'双塔山',duration:'2.5小时',price:'50元',traffic:'公交15路',tip:'两座山上各有古塔，奇观'},
+{name:'外八庙',duration:'3小时',price:'各庙单独收费',traffic:'公交118路',tip:'藏传佛教寺庙群'},
+{name:'木兰围场',duration:'2天',price:'150元(通票)',traffic:'承德西站乘大巴3小时',tip:'清代皇家猎苑，乌兰布统草原美'},
+{name:'金山岭长城',duration:'4小时',price:'旺季65元/淡季55元',traffic:'包车约2小时',tip:'摄影师最爱，保存最完好的明长城'}
+],foods:[
+{name:'承德凉粉',desc:'荞麦凉粉，酸辣爽口'},
+{name:'驴打滚',desc:'宫廷糕点，黄豆面裹糯米'},
+{name:'汽锅野味八仙',desc:'承德名菜，多种野味一锅炖'},
+{name:'碗坨',desc:'荞麦面蒸制，煎着吃最香'},
+{name:'南沙饼',desc:'酥皮点心，多口味可选'},
+{name:'改刀肉',desc:'猪肉+竹笋切丝爆炒，宫廷御膳'}
+],areas:[
+{name:'避暑山庄周边',desc:'步行可达核心景区'},
+{name:'双滦区',desc:'近普陀宗乘庙，酒店较新'},
+{name:'承德火车站',desc:'交通便利，出行方便'},
+{name:'大学城',desc:'性价比高，美食多'}
+],budget:{cheap:280,mid:550,comfort:1000},
+pitfalls:[
+'避暑山庄太大了！建议买景区车票，不然走断腿',
+'山区景区早晚会冷，即使夏天也要带外套',
+'木兰围场距离市区很远(200km)，最少安排2天',
+'避暑山庄门口"野导游"别信，讲解不到位还瞎忽悠',
+'普宁寺请香很贵，心诚则灵不用买贵香',
+'七八月份避暑山庄也很热，别被名字骗了，只是比北京低几度'
+],luggage:[
+'身份证','舒适运动鞋(山庄走巨多)','充电宝',
+'薄外套(早晚凉)','防晒霜+遮阳帽','雨伞(夏季多雨)',
+'保温杯(北方干燥)','驱蚊液(山区蚊子多)'
+]},
+zhangjiakou:{name:'张家口',sights:[
+{name:'大境门',duration:'1.5小时',price:'12元',traffic:'市区公交16路',tip:'万里长城第一门，与山海关齐名'},
+{name:'草原天路',duration:'全天',price:'免费',traffic:'自驾/包车最方便',tip:'中国66号公路，夏季最美'},
+{name:'崇礼滑雪场',duration:'全天',price:'各雪场不同',traffic:'大巴/高铁1小时到崇礼',tip:'2022冬奥举办地，冬季滑雪圣地'},
+{name:'鸡鸣驿',duration:'2小时',price:'40元',traffic:'怀来县乘公交',tip:'保存最完整的古驿站'},
+{name:'暖泉古镇',duration:'3小时',price:'120元(套票)',traffic:'蔚县大巴',tip:'打树花表演超震撼'},
+{name:'小五台山',duration:'全天',price:'旺季80元/淡季60元',traffic:'桃花镇包车',tip:'河北第一高峰，徒步圣地'},
+{name:'黄帝城',duration:'2小时',price:'80元',traffic:'涿鹿县公交',tip:'中华三祖圣地'},
+{name:'蔚州古城',duration:'2.5小时',price:'免费',traffic:'蔚县县城',tip:'千年古州，代王府遗址'}
+],foods:[
+{name:'莜面窝窝',desc:'张家口特色，栲栳栳蘸蘑菇汤'},
+{name:'柴沟堡熏肉',desc:'百年老字号，肥而不腻'},
+{name:'怀安豆腐皮',desc:'薄如纸张，凉拌热炒皆宜'},
+{name:'蔚县黄糕',desc:'黍米制作，蘸糖吃香甜'},
+{name:'口蘑',desc:'坝上特产，炖鸡炖汤超鲜'},
+{name:'烧南北',desc:'张家口名菜，竹笋+口蘑烧制'}
+],areas:[
+{name:'张家口市区',desc:'交通枢纽，出行方便'},
+{name:'崇礼区',desc:'滑雪圣地，酒店多'},
+{name:'张北县',desc:'近草原天路，夏季避暑'},
+{name:'蔚县',desc:'近暖泉古镇和小五台山'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'草原天路一定要自驾！公共交通根本没法玩',
+'天路周末堵车严重，建议工作日去，加满油再上路',
+'崇礼滑雪旺季(1-2月)酒店价格暴涨，提前1个月订',
+'小五台山徒步难度大，没经验别乱穿越',
+'暖泉打树花是晚上表演，冬天看最壮观',
+'坝上草原温差大，8月晚上可能只有10度，带厚外套！'
+],luggage:[
+'身份证','舒适徒步鞋','充电宝',
+'冲锋衣/厚外套(温差巨大)','防晒霜(高原紫外线强)','墨镜+遮阳帽',
+'保温杯(喝热水暖身)','便携零食(天路没商店)'
+]},
+tangshan:{name:'唐山',sights:[
+{name:'清东陵',duration:'3.5小时',price:'旺季108元/淡季80元',traffic:'遵化市乘大巴',tip:'乾隆、慈禧陵墓，世界文化遗产'},
+{name:'唐山地震遗址纪念公园',duration:'2小时',price:'免费',traffic:'市区公交',tip:'纪念1976年大地震，铭记历史'},
+{name:'南湖公园',duration:'2小时',price:'免费',traffic:'公交游3路',tip:'世园会旧址，面积超大'},
+{name:'月坨岛',duration:'全天',price:'110元(含船票)',traffic:'乐亭县三岛码头乘船',tip:'北方小马尔代夫，海上木屋'},
+{name:'滦州古城',duration:'2.5小时',price:'免费',traffic:'滦州市公交',tip:'三千年古县，夜景好看'},
+{name:'李大钊故居',duration:'1.5小时',price:'免费',traffic:'乐亭县公交',tip:'革命先辈故居，红色教育'},
+{name:'菩提岛',duration:'3小时',price:'100元(含船票)',traffic:'乐亭县码头',tip:'华北第一大岛，生态环境好'},
+{name:'开滦国家矿山公园',duration:'2小时',price:'118元',traffic:'市区公交',tip:'体验煤矿井下探秘'}
+],foods:[
+{name:'唐山棋子烧饼',desc:'小如棋子，酥得掉渣'},
+{name:'鸿宴饭庄瓦块鱼',desc:'老字号名菜，酸甜入味'},
+{name:'蜂蜜麻糖',desc:'唐山特产，薄如蝉翼甜如蜜'},
+{name:'郝鸿来火烧',desc:'驴肉火烧，外酥里嫩'},
+{name:'海鲜',desc:'乐亭海鲜，皮皮虾螃蟹超肥'},
+{name:'搁着',desc:'唐山特色，绿豆制品，煎炒炸皆可'}
+],areas:[
+{name:'唐山市中心',desc:'交通便利，购物方便'},
+{name:'路南区(南湖)',desc:'近南湖公园，环境好'},
+{name:'乐亭县',desc:'近月坨岛、菩提岛海岛游'},
+{name:'遵化市',desc:'近清东陵，适合历史游'}
+],budget:{cheap:260,mid:520,comfort:950},
+pitfalls:[
+'清东陵很大，建议买景区电瓶车，不然走很远',
+'月坨岛木屋住宿要提前订，旺季很难订到',
+'上岛注意天气，大风天会停航，可能被困岛上',
+'地震遗址公园很沉重，带小孩慎重考虑',
+'棋子烧饼现做的才好吃，超市真空包装的差点',
+'滦州古城是新建的仿古建筑，别期望太高，夜景还行'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞','薄外套(海边风大)',
+'换洗衣物(海边潮湿)','肠胃药(海鲜必备)'
+]},
+baoding:{name:'保定',sights:[
+{name:'白洋淀',duration:'全天',price:'入淀费40元+各景点',traffic:'安新县/雄县打车',tip:'华北明珠，荷花大观园夏季最美'},
+{name:'野三坡百里峡',duration:'4-5小时',price:'旺季115元/淡季65元',traffic:'野三坡镇公交',tip:'天下第一峡，清凉避暑'},
+{name:'古莲花池',duration:'1.5小时',price:'30元',traffic:'市区公交',tip:'元代园林，古代书院'},
+{name:'直隶总督署',duration:'1.5小时',price:'30元',traffic:'市区公交',tip:'一座总督署半部清朝史'},
+{name:'狼牙山',duration:'4小时',price:'80元',traffic:'易县大巴',tip:'五勇士跳崖处，红色教育'},
+{name:'清西陵',duration:'3小时',price:'旺季108元/淡季80元',traffic:'易县公交',tip:'雍正、光绪陵墓，世界文化遗产'},
+{name:'白石山',duration:'5小时',price:'150元',traffic:'涞源县包车',tip:'北方小黄山，玻璃栈道刺激'},
+{name:'满城汉墓',duration:'2小时',price:'75元',traffic:'满城区公交',tip:'中山靖王刘胜墓，金缕玉衣出土地'}
+],foods:[
+{name:'驴肉火烧',desc:'保定驴肉火烧(圆的)，和河间的不一样'},
+{name:'白洋淀炖杂鱼',desc:'锅贴饼子配杂鱼，绝了'},
+{name:'牛肉罩饼',desc:'牛肉汤泡饼，暖和又管饱'},
+{name:'槐茂酱菜',desc:'保定三宝之一，酱香味浓'},
+{name:'安新咸鸭蛋',desc:'白洋淀特产，流油沙黄'},
+{name:'涞源豆腐',desc:'酸浆点制，豆香浓郁'}
+],areas:[
+{name:'保定市中心',desc:'近直隶总督署、古莲花池'},
+{name:'安新县',desc:'近白洋淀景区'},
+{name:'涞水县',desc:'近野三坡百里峡'},
+{name:'易县',desc:'近清西陵、狼牙山'}
+],budget:{cheap:240,mid:480,comfort:900},
+pitfalls:[
+'白洋淀千万别在码头找"黑导游"，带你去私人景点花钱多',
+'白洋淀各景区是分开的，船费另算，提前做好预算',
+'野三坡百里峡建议从百里峡入口进，另一个入口要爬山',
+'保定驴肉火烧推荐：闫家、袁家、永茂，别在火车站周边吃',
+'白石山玻璃栈道需要穿鞋套(5元)，提前准备',
+'清西陵和清东陵选一个看就行，没必要都去'
+],luggage:[
+'身份证','舒适运动鞋(爬山巨多)','充电宝',
+'防晒霜+遮阳帽','雨伞(夏季多雨)','薄外套(山区凉)',
+'水杯(山区补水)'
+]},
+taiyuan:{name:'太原',sights:[
+{name:'晋祠',duration:'2.5小时',price:'旺季80元/淡季65元',traffic:'公交301/804路',tip:'三千年历史，圣母殿侍女像超精美'},
+{name:'山西博物院',duration:'3小时',price:'免费(需预约)',traffic:'公交865路',tip:'晋侯鸟尊、侯马盟书必看'},
+{name:'柳巷',duration:'2小时',price:'免费',traffic:'地铁2号线开化寺站',tip:'太原百年商业街，美食聚集地'},
+{name:'双塔寺',duration:'1.5小时',price:'30元',traffic:'公交812路',tip:'太原地标，两座明代古塔'},
+{name:'蒙山大佛',duration:'2.5小时',price:'50元',traffic:'公交58路',tip:'世界最早石刻大佛，比乐山大佛还早'},
+{name:'天龙山石窟',duration:'2小时',price:'50元',traffic:'晋祠乘公交',tip:'东魏至唐代石窟，可惜大多被盗'},
+{name:'迎泽公园',duration:'1.5小时',price:'免费',traffic:'地铁1/2号线大南门站',tip:'太原市内最大公园'},
+{name:'汾河公园',duration:'1.5小时',price:'免费',traffic:'多站可达',tip:'汾河两岸漫步，夜景很美'}
+],foods:[
+{name:'刀削面',desc:'山西面食代表，正宗的用刀削'},
+{name:'过油肉',desc:'山西名菜，肉片嫩滑醋香四溢'},
+{name:'头脑(八珍汤)',desc:'傅山发明，早餐喝的养生汤'},
+{name:'清徐灌肠',desc:'荞麦面灌肠，卤汁炒一绝'},
+{name:'老陈醋',desc:'宁化府、东湖，带一瓶回家'},
+{name:'焖面',desc:'豆角焖面，家常味超好吃'}
+],areas:[
+{name:'迎泽大街(市中心)',desc:'交通枢纽，地铁方便'},
+{name:'柳巷商圈',desc:'购物美食天堂'},
+{name:'长风商务区',desc:'新城区，近省博物院'},
+{name:'南站/机场周边',desc:'适合短期停留'}
+],budget:{cheap:240,mid:480,comfort:900},
+pitfalls:[
+'晋祠比较远(市区西南25公里)，公交要1.5小时，预留好时间',
+'山西博物院周一闭馆，一定要提前预约',
+'柳巷食品街大多是给游客的，本地人去食品街旁边的巷子里吃',
+'头脑是早餐，只有早上有卖，味道独特，外地人可能喝不惯',
+'出租车不打表很常见，建议用网约车',
+'太原冬天雾霾重，尽量选春夏秋季来'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','雨伞(夏季多雨)','薄外套(温差)',
+'水杯(干燥)'
+]},
+datong:{name:'大同',sights:[
+{name:'云冈石窟',duration:'3小时',price:'旺季120元/淡季100元',traffic:'公交3路/旅游1号线',tip:'世界文化遗产，5万尊佛像太震撼'},
+{name:'悬空寺',duration:'1.5小时',price:'旺季130元/淡季115元',traffic:'浑源县打车',tip:'建在悬崖上的千年古寺，登临费另收'},
+{name:'恒山',duration:'4小时',price:'旺季45元/淡季30元',traffic:'浑源县公交',tip:'北岳恒山，道教圣地'},
+{name:'古城墙',duration:'1.5小时',price:'免费',traffic:'市区步行可达',tip:'明代城墙，可骑行游览'},
+{name:'华严寺',duration:'2小时',price:'旺季65元/淡季50元',traffic:'市区公交',tip:'辽金寺庙，薄伽教藏殿精美'},
+{name:'九龙壁',duration:'0.5小时',price:'10元',traffic:'市区公交',tip:'中国最早最大的琉璃九龙壁'},
+{name:'善化寺',duration:'1小时',price:'50元',traffic:'市区公交',tip:'辽金建筑代表，普贤阁超美'},
+{name:'土林',duration:'1.5小时',price:'60元',traffic:'杜庄乡打车',tip:'地质奇观，日落时分最美'}
+],foods:[
+{name:'刀削面',desc:'大同刀削面最正宗，东方削面、七中削面'},
+{name:'大同黄糕',desc:'黍米制作，蘸肉吃绝了'},
+{name:'什锦火锅',desc:'大同铜火锅，什锦食材一锅端'},
+{name:'浑源凉粉',desc:'小媳妇凉粉，Q弹酸辣'},
+{name:'烧麦',desc:'凤临阁烧麦，皮薄馅大'},
+{name:'莜面栲栳栳',desc:'山西特色，蘸羊肉蘑菇汤'}
+],areas:[
+{name:'大同古城内',desc:'近华严寺、九龙壁，古韵浓'},
+{name:'东信广场',desc:'商圈繁华，购物方便'},
+{name:'火车站周边',desc:'交通便利，性价比高'},
+{name:'御东新区',desc:'新城区，酒店较新'}
+],budget:{cheap:250,mid:500,comfort:900},
+pitfalls:[
+'云冈石窟建议请讲解，不然就是一堆石头看不懂',
+'悬空寺登临很刺激，但有限流，旺季排队2小时以上',
+'恒山和悬空寺在一条线，安排一天顺路玩',
+'大同刀削面每家味道不一样，本地人推荐：七中、东方、老柴',
+'九龙壁很小(就是一面墙)，10分钟看完，顺路参观',
+'大同冬天超级冷(-20度)，夏天是避暑圣地(25度左右)'
+],luggage:[
+'身份证','舒适鞋(石窟爬山)','充电宝',
+'防晒霜+遮阳帽','保暖衣物(冬冷夏凉)','雨伞',
+'水杯(北方干燥)'
+]},
+pingyao:{name:'平遥',sights:[
+{name:'平遥古城墙',duration:'2小时',price:'包含在通票内',traffic:'古城内步行',tip:'世界文化遗产，环城一周6公里'},
+{name:'日升昌票号',duration:'1小时',price:'通票内',traffic:'古城内',tip:'中国第一家票号，银行鼻祖'},
+{name:'平遥县衙',duration:'1.5小时',price:'通票内',traffic:'古城内',tip:'古代县衙升堂表演'},
+{name:'双林寺',duration:'2小时',price:'40元',traffic:'打车15分钟',tip:'东方彩塑艺术宝库'},
+{name:'镇国寺',duration:'1.5小时',price:'30元',traffic:'打车20分钟',tip:'五代建筑，万佛殿千年不倒'},
+{name:'乔家大院',duration:'2.5小时',price:'115元',traffic:'祁县打车40分钟',tip:'大红灯笼高高挂取景地'},
+{name:'王家大院',duration:'3小时',price:'55元',traffic:'灵石县公交',tip:'民间故宫，比乔家大5倍'},
+{name:'又见平遥',duration:'90分钟',price:'238元起',traffic:'古城外',tip:'大型沉浸式实景剧，必看'}
+],foods:[
+{name:'平遥牛肉',desc:'冠云老字号，切片即食，肥而不腻'},
+{name:'碗托',desc:'董记碗托，荞麦凉粉炒着吃'},
+{name:'莜面栲栳栳',desc:'山西特色，蘸卤汁吃'},
+{name:'曹家熏肘',desc:'平遥名菜，熏香浓郁'},
+{name:'长山药',desc:'平遥特产，炖汤滋补'},
+{name:'泡泡油糕',desc:'外酥里甜，现炸好吃'}
+],areas:[
+{name:'平遥古城内',desc:'体验住在百年大院，推荐一得宾馆'},
+{name:'古城外(顺城路)',desc:'交通方便，性价比高'},
+{name:'祁县',desc:'近乔家大院，适合顺路'},
+{name:'介休市',desc:'近绵山+王家大院'}
+],budget:{cheap:280,mid:550,comfort:1000},
+pitfalls:[
+'平遥通票125元/3天，所有景点都包含，建议买通票',
+'又见平遥演出超火，旺季提前1周订票，值回票价',
+'王家大院比乔家大院大很多还便宜，两个选一个推荐王家',
+'古城内电动车拉客要砍价，一般5元一次',
+'不要买古城门口的假古董，都是义乌批发的',
+'十一/春节古城人挤人，强烈建议淡季去'
+],luggage:[
+'身份证','舒适鞋(古城全是石板路)','充电宝',
+'防晒霜+遮阳帽','雨伞(夏季多雨)','薄外套(早晚凉)',
+'水杯(北方干燥)'
+]},
+xinzhou:{name:'忻州(五台山)',sights:[
+{name:'五台山(台怀镇核心区)',duration:'2天',price:'旺季135元/淡季118元',traffic:'忻州/太原乘大巴',tip:'四大佛教名山之首，文殊菩萨道场'},
+{name:'显通寺',duration:'1.5小时',price:'10元',traffic:'台怀镇步行',tip:'五台山开山祖寺，铜殿金殿'},
+{name:'塔院寺',duration:'1小时',price:'10元',traffic:'台怀镇',tip:'大白塔是五台山标志'},
+{name:'五爷庙',duration:'0.5小时',price:'免费',traffic:'台怀镇',tip:'有求必应，香火最旺'},
+{name:'黛螺顶',duration:'1.5小时',price:'8元',traffic:'步行1080台阶/索道',tip:'登顶朝拜五方文殊'},
+{name:'菩萨顶',duration:'1小时',price:'10元',traffic:'台怀镇',tip:'黄庙领袖，康熙行宫'},
+{name:'五台山大朝台',duration:'1天',price:'350元(观光车)',traffic:'包车/拼车',tip:'五个台顶，一天完成'},
+{name:'芦芽山',duration:'4小时',price:'旺季90元/淡季70元',traffic:'宁武县包车',tip:'万年冰洞、悬空村奇观'}
+],foods:[
+{name:'五台山素斋',desc:'寺庙素斋，静心体验'},
+{name:'莜面栲栳栳',desc:'山西特色，五台山到处都有'},
+{name:'台蘑',desc:'五台山特产，台蘑炖鸡超鲜'},
+{name:'定襄蒸肉',desc:'忻州名菜，粉条+土豆+肉蒸制'},
+{name:'高粱面鱼鱼',desc:'杂粮面食，搓成鱼形凉拌'},
+{name:'保德碗托',desc:'和平遥碗托不同，凉拌为主'}
+],areas:[
+{name:'五台山台怀镇',desc:'寺庙集中，核心景区'},
+{name:'五台县',desc:'适合进山前一晚住'},
+{name:'忻州市区',desc:'交通枢纽，性价比高'},
+{name:'宁武县',desc:'近芦芽山、万年冰洞'}
+],budget:{cheap:260,mid:520,comfort:950},
+pitfalls:[
+'五台山温度比市区低10度！夏季晚上也要穿外套，冬季要羽绒服',
+'五爷庙上香免费，不要买门口"高香"，骗钱的',
+'大朝台天气多变，遇到大雾/暴风雪很正常，备好冲锋衣',
+'五台山食宿在山上都偏贵，住五台县能省一半',
+'黛螺顶台阶1080级，老人小孩建议坐索道(上行35元)',
+'出租车/拼车进山要查进山证，黑车不要坐'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'冲锋衣/厚外套(温差10度+)','防晒霜(高原紫外线强)','墨镜+帽子',
+'保温杯(喝热水)','便携氧气瓶(海拔3000+可能高反)'
+]},
+jinan:{name:'济南',sights:[
+{name:'趵突泉',duration:'1.5小时',price:'40元',traffic:'公交1/5路',tip:'天下第一泉，三股水很神奇'},
+{name:'大明湖',duration:'2.5小时',price:'免费',traffic:'公交11/41路',tip:'还记得大明湖畔的夏雨荷吗'},
+{name:'千佛山',duration:'2.5小时',price:'30元',traffic:'公交2/64路',tip:'登顶俯瞰济南全城，索道可坐'},
+{name:'黑虎泉',duration:'1小时',price:'免费',traffic:'公交5/36路',tip:'市民排队接泉水，你也可以接一瓶'},
+{name:'五龙潭',duration:'1小时',price:'5元',traffic:'公交1/3路',tip:'趵突泉旁边，人少清幽'},
+{name:'芙蓉街',duration:'1.5小时',price:'免费',traffic:'公交3/101路',tip:'小吃街，但本地人觉得味道一般'},
+{name:'宽厚里',duration:'1.5小时',price:'免费',traffic:'公交5/36路',tip:'比芙蓉街新一些，文艺点'},
+{name:'山东博物馆',duration:'2.5小时',price:'免费(需预约)',traffic:'公交115路',tip:'东平汉墓壁画、鲁国文物必看'},
+{name:'红叶谷',duration:'3小时',price:'100元(旺季)',traffic:'公交65路转',tip:'10-11月红叶漫山超美'},
+{name:'九如山',duration:'4小时',price:'旺季120元/淡季80元',traffic:'公交312路',tip:'九如瀑布群，避暑好地方'}
+],foods:[
+{name:'九转大肠',desc:'鲁菜代表，酸甜香辣咸五味俱全'},
+{name:'糖醋鲤鱼',desc:'鲤鱼跳龙门造型，外酥里嫩'},
+{name:'油旋',desc:'葱香酥脆，老济南早餐'},
+{name:'甜沫',desc:'咸粥配油旋，济南标配早餐'},
+{name:'把子肉',desc:'超意兴、大米干饭把子肉，肥而不腻'},
+{name:'泉水豆腐',desc:'用泉水做的豆腐，嫩到入口即化'}
+],areas:[
+{name:'泉城广场/趵突泉',desc:'市中心，近三大名胜'},
+{name:'大明湖周边',desc:'湖景房，环境优美'},
+{name:'泉城路/芙蓉街',desc:'购物美食商圈'},
+{name:'千佛山下',desc:'安静清幽，适合住高端酒店'}
+],budget:{cheap:280,mid:550,comfort:1000},
+pitfalls:[
+'趵突泉丰水期(8-9月)最好看，枯水期可能看不到三股水',
+'黑虎泉的泉水可以直接喝，带个空瓶子接水',
+'芙蓉街别抱太大期望，都是全国统一的小吃',
+'把子肉推荐超意兴，济南连锁快餐店，本地人常去',
+'济南夏天号称"火炉"，40度正常，避开7-8月',
+'泉城广场音乐喷泉19:30开始，值得一看'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜(夏天巨热)','空瓶子(接泉水)','雨伞(夏季多雨)',
+'水杯'
+]},
+qingdao:{name:'青岛',sights:[
+{name:'栈桥',duration:'1小时',price:'免费',traffic:'公交2/5路',tip:'青岛地标，回澜阁看日落'},
+{name:'八大关',duration:'2.5小时',price:'免费',traffic:'公交26/31路',tip:'万国建筑博览会，花石楼收费8.5元'},
+{name:'崂山(南线太清宫)',duration:'全天',price:'旺季130元/淡季90元',traffic:'公交304/104路',tip:'海上第一名山，道教圣地'},
+{name:'五四广场',duration:'1小时',price:'免费',traffic:'地铁3号线五四广场站',tip:'五月的风雕塑，夜景灯光秀'},
+{name:'青岛啤酒博物馆',duration:'1.5小时',price:'60元',traffic:'公交1/4路',tip:'百年啤酒厂，送一杯原浆啤酒'},
+{name:'金沙滩',duration:'3小时+',price:'免费',traffic:'隧道公交',tip:'亚洲第一滩，沙质细腻'},
+{name:'天主教堂(圣弥厄尔)',duration:'1小时',price:'10元',traffic:'公交1/5路',tip:'哥特式建筑，拍婚纱照圣地'},
+{name:'小鱼山公园',duration:'1小时',price:'10元',traffic:'公交220路',tip:'俯瞰前海一线红瓦绿树'},
+{name:'信号山公园',duration:'1小时',price:'15元',traffic:'公交1/25路',tip:'旋转观景台，360度看青岛'},
+{name:'小麦岛公园',duration:'2小时',price:'免费',traffic:'公交231路',tip:'文艺清新，日落超美'}
+],foods:[
+{name:'海鲜(辣炒蛤蜊)',desc:'红岛蛤蜊，辣炒最经典'},
+{name:'啤酒(袋装散啤)',desc:'夏天马路边用塑料袋打啤酒'},
+{name:'烧烤(野馄饨)',desc:'路边摊撸串喝啤酒，青岛标配'},
+{name:'鲅鱼水饺',desc:'船歌鱼水饺，青岛特色'},
+{name:'脂渣',desc:'猪肉炸制，香酥脆，郑庄脂渣'},
+{name:'海菜凉粉',desc:'凉拌菜，清爽解腻'}
+],areas:[
+{name:'市南区(栈桥/八大关)',desc:'老城区，海景+德式建筑'},
+{name:'五四广场/奥帆中心',desc:'新城区，繁华海景'},
+{name:'黄岛(金沙滩)',desc:'沙滩好，人少清净'},
+{name:'台东步行街',desc:'夜市热闹，性价比高'}
+],budget:{cheap:320,mid:650,comfort:1300},
+pitfalls:[
+'海鲜大排档别在栈桥附近吃，去营口路市场买了让旁边啤酒屋加工(加工费5-15元)',
+'袋装散啤才是青岛人的打开方式，饭店里的瓶装都不正宗',
+'崂山分南线/北线/中线，南线(太清宫)最经典，别走错线路',
+'青岛夏天雾大(俗称"桑拿天")，实际海很黄，想看蓝海去黄岛金沙滩',
+'八大关花石楼8.5元门票很值，公主楼没必要进去',
+'金沙滩要坐隧道公交，打车贵，别被"黑出租"坑'
+],luggage:[
+'身份证','泳衣泳裤','防晒霜SPF50+',
+'遮阳帽/墨镜','拖鞋/沙滩鞋','换洗衣物多套(潮湿)',
+'肠胃药(吃海鲜+冰啤酒必备)','薄外套(海风大)'
+]},
+yantai:{name:'烟台',sights:[
+{name:'蓬莱阁',duration:'3小时',price:'旺季140元/淡季100元',traffic:'烟台汽车总站乘大巴1.5小时',tip:'八仙过海传说地，海市蜃楼奇观'},
+{name:'养马岛',duration:'半天',price:'免费',traffic:'烟台站乘公交617路',tip:'东方小马代，海水清澈'},
+{name:'烟台山',duration:'2小时',price:'免费',traffic:'公交43/46路',tip:'烟台地标，灯塔俯瞰全城'},
+{name:'长岛(南北长山岛)',duration:'2天',price:'陆地通票165元',traffic:'蓬长客港乘船40分钟',tip:'海上仙山，万鸟岛超震撼'},
+{name:'金沙滩海滨公园',duration:'2.5小时',price:'免费',traffic:'公交21/28路',tip:'万米金沙滩，沙质细腻'},
+{name:'东炮台',duration:'1.5小时',price:'30元',traffic:'公交17/82路',tip:'清代炮台，月亮湾浪漫'},
+{name:'三仙山',duration:'2小时',price:'120元',traffic:'蓬莱市内',tip:'仿仙境园林，亭台楼阁精美'},
+{name:'南山公园',duration:'2小时',price:'免费',traffic:'公交7/23路',tip:'登南山塔看烟台全景'}
+],foods:[
+{name:'海鲜大咖',desc:'螃蟹、虾爬、扇贝、生蚝，按斤吃'},
+{name:'烟台大樱桃',desc:'5-6月上市，比车厘子还好吃'},
+{name:'蓬莱小面',desc:'早餐标配，海鲜卤配细面，便宜大碗'},
+{name:'鲅鱼水饺',desc:'胶东特色，鲜嫩多汁'},
+{name:'炒海肠',desc:'烟台名菜，韭菜炒海肠鲜美'},
+{name:'焖子',desc:'凉粉煎至金黄，配麻酱蒜泥'}
+],areas:[
+{name:'烟台市区(莱山/芝罘)',desc:'交通便利，近烟台山、东炮台'},
+{name:'蓬莱市',desc:'近蓬莱阁、长岛码头'},
+{name:'牟平区(养马岛)',desc:'海岛度假，清净人少'},
+{name:'开发区(金沙滩)',desc:'沙滩好，酒店性价比高'}
+],budget:{cheap:280,mid:550,comfort:1100},
+pitfalls:[
+'长岛要从蓬莱坐船，大风天停航，提前看天气预报',
+'海鲜去红利市场买，找周边小店加工，便宜新鲜',
+'蓬莱阁和三仙山挨着，两个都买门票有点贵，选蓬莱阁就行',
+'养马岛可以自驾/骑电动车绕岛，公交不太行',
+'烟台樱桃5月下旬-6月中旬是旺季，其他季节都是冷库的',
+'长岛海鲜超便宜，但岛上住宿条件一般，节假日翻倍'
+],luggage:[
+'身份证','泳衣泳裤','高倍防晒霜',
+'遮阳帽/墨镜','沙滩鞋','换洗衣物',
+'肠胃药(海鲜)','防风外套(海边风大)'
+]},
+weihai:{name:'威海',sights:[
+{name:'刘公岛',duration:'全天',price:'138元(含船票)',traffic:'威海港码头乘船20分钟',tip:'甲午海战纪念馆，铭记历史'},
+{name:'成山头(天尽头)',duration:'4小时',price:'旺季148元/淡季128元',traffic:'威海汽车站乘大巴1.5小时',tip:'中国海岸线最东端，看日出'},
+{name:'国际海水浴场',duration:'3小时+',price:'免费',traffic:'公交7/12路',tip:'沙质细腻，北方最好海滩之一'},
+{name:'那香海',duration:'半天',price:'免费',traffic:'公交205/253路',tip:'新晋网红，钻石沙滩+风车'},
+{name:'猫头山',duration:'2.5小时',price:'免费',traffic:'打车/自驾',tip:'威海小冰岛，悬崖观海'},
+{name:'海源公园',duration:'1.5小时',price:'免费',traffic:'公交4/13路',tip:'合庆码头渔船海鲜超便宜'},
+{name:'华夏城',duration:'3小时',price:'98元',traffic:'公交35/49路',tip:'大型生态景区，晚上神游传奇秀'},
+{name:'环海路',duration:'半天',price:'免费',traffic:'自驾/骑行',tip:'威海最美海岸线，猫头山-葡萄滩-国际浴场'}
+],foods:[
+{name:'海鲜(海蛎子)',desc:'乳山牡蛎，生吃都鲜甜'},
+{name:'鲅鱼饺子',desc:'双盛园、婆婆妈妈水饺'},
+{name:'威海打边炉',desc:'清水煮海鲜，蘸姜醋吃本味'},
+{name:'喜饼',desc:'威海特色面食，婚礼用饼'},
+{name:'鱼锅饼子',desc:'大锅炖鱼+贴玉米饼，渔家风味'},
+{name:'无花果',desc:'威海特产，9-10月上市，甜蜜软糯'}
+],areas:[
+{name:'环翠区(市中心)',desc:'近刘公岛码头，出行方便'},
+{name:'高区(国际海水浴场)',desc:'海景房，近海滩'},
+{name:'荣成市(成山头/那香海)',desc:'适合深度游，空气超好'},
+{name:'经区(威海站)',desc:'交通枢纽，性价比高'}
+],budget:{cheap:300,mid:600,comfort:1200},
+pitfalls:[
+'刘公岛建议先看甲午战争博物馆，再环岛，下午5点最后一班船回',
+'成山头很远(荣成)，一日游安排好，"天尽头"石碑改名叫"天无尽头"了',
+'国际海水浴场7-8月人超多，9月人少水还暖',
+'海源公园合庆码头下午4点渔船回来，海鲜刚捞上岸，比菜市场还便宜',
+'威海韩国人多，很多正宗韩餐，李朝牛汤、真利味韩餐推荐',
+'环海路骑电动车最爽，注意防晒，租电动车注意电量'
+],luggage:[
+'身份证','泳衣泳裤','高倍防晒霜',
+'遮阳帽/墨镜','沙滩鞋','换洗衣物',
+'肠胃药(海鲜)','防风外套'
+]},
+rizhao:{name:'日照',sights:[
+{name:'万平口海滨风景区',duration:'3小时',price:'免费',traffic:'公交6/33路',tip:'日照城市会客厅，沙滩平缓'},
+{name:'吴家台/任家台渔家',duration:'1-2天',price:'免费',traffic:'公交35/36路',tip:'住渔家屋吃渔家饭，赶海拾贝'},
+{name:'灯塔风景区',duration:'1.5小时',price:'免费',traffic:'公交1/5路',tip:'日照地标，礁石公园赶海'},
+{name:'海滨国家森林公园',duration:'半天',price:'旺季50元/淡季30元',traffic:'公交35路',tip:'中国第一金沙滩，沙质超细'},
+{name:'五莲山',duration:'3.5小时',price:'旺季78元/淡季65元',traffic:'五莲县公交',tip:'江北野生杜鹃花园，春季花海'},
+{name:'九仙山',duration:'4小时',price:'旺季78元/淡季65元',traffic:'五莲县公交',tip:'玻璃栈道+峡谷漂流，刺激好玩'},
+{name:'竹洞天',duration:'2小时',price:'60元',traffic:'公交15路',tip:'北方最大毛竹林，纳凉好去处'},
+{name:'东夷小镇',duration:'2小时',price:'免费',traffic:'公交5/6路',tip:'仿古建筑小镇，夜景+美食'}
+],foods:[
+{name:'海鲜大咖',desc:'渔家宴，螃蟹皮皮虾生蚝扇贝管够'},
+{name:'煎饼卷大葱',desc:'山东标配，日照煎饼更薄'},
+{name:'日照绿茶',desc:'北方第一名茶，带两斤回去'},
+{name:'羊肉汤',desc:'莒县全羊汤，醇厚浓香'},
+{name:'西施舌',desc:'日照特产蛤蜊，鲜美无比'},
+{name:'乌鱼蛋',desc:'乌贼卵，国宴食材，日照特产'}
+],areas:[
+{name:'万平口(新市区)',desc:'市中心，近各大海滩'},
+{name:'山海天度假区',desc:'近吴家台渔家，赶海方便'},
+{name:'老城区(日照站)',desc:'交通枢纽，性价比高'},
+{name:'五莲县',desc:'近五莲山、九仙山'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'渔家住宿吃饭提前问价！别被"拉客渔家"坑了，推荐吴家台村',
+'赶海要查潮汐表！退潮才能捡到东西，农历初一十五前后退大潮',
+'森林公园沙滩是日照最好的，别因为门票不去，很值',
+'万平口沙滩水质一般，好沙滩去吴家台/森林公园那边',
+'日照海鲜比青岛便宜很多，敞开吃，海蛎子10元/斤',
+'夏季周末酒店价格翻倍，提前预订'
+],luggage:[
+'身份证','泳衣泳裤','高倍防晒霜',
+'遮阳帽/墨镜','沙滩鞋/赶海工具','换洗衣物',
+'肠胃药(海鲜)','保温杯','防晒衣'
+]},
+taian:{name:'泰安(泰山)',sights:[
+{name:'泰山',duration:'1-2天',price:'旺季115元/淡季100元',traffic:'公交3路/旅游专线',tip:'五岳之首，夜爬看日出经典'},
+{name:'岱庙',duration:'2小时',price:'旺季30元/淡季20元',traffic:'市区公交',tip:'历代帝王封禅驻地，天贶殿壁画'},
+{name:'红门(徒步起点)',duration:'全程6-7小时',price:'免费',traffic:'公交3路',tip:'经典徒步登山起点，全程7000级台阶'},
+{name:'天外村(乘车上山)',duration:'全天',price:'车票30元',traffic:'公交3路',tip:'坐景区车到中天门，省体力'},
+{name:'南天门/天街',duration:'1.5小时',price:'含在泰山门票',traffic:'山顶步行',tip:'山顶最繁华区，吃饭住宿集中'},
+{name:'玉皇顶',duration:'0.5小时',price:'含在门票',traffic:'天街步行',tip:'泰山极顶1545米，打卡五岳独尊石刻'},
+{name:'日观峰',duration:'0.5小时',price:'免费',traffic:'山顶步行',tip:'看日出最佳位置'},
+{name:'方特欢乐世界',duration:'全天',price:'240元',traffic:'公交k1路',tip:'大型主题乐园，适合亲子'}
+],foods:[
+{name:'泰安煎饼',desc:'粗粮煎饼，卷大葱蘸酱'},
+{name:'泰山三美(白菜豆腐水)',desc:'泰山泉水做的白菜豆腐汤'},
+{name:'赤鳞鱼',desc:'泰山特产，冷水鱼，酥炸好吃'},
+{name:'泰安糁汤',desc:'牛骨汤+麦仁+鸡蛋，早餐标配'},
+{name:'干炸赤鳞鱼',desc:'泰山名菜，金黄酥脆'},
+{name:'野菜宴',desc:'泰山野菜，荠菜/苦菜/马齿苋'}
+],areas:[
+{name:'红门/岱庙周边',desc:'近登山起点，方便出发'},
+{name:'天外村/泰山站',desc:'交通枢纽，坐车登山方便'},
+{name:'泰安市中心',desc:'购物美食，性价比高'},
+{name:'泰山顶(南天门)',desc:'看日出首选，但住宿贵且条件差'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'夜爬泰山一定要带厚外套！山顶夜间0度左右(即使夏天)，租大衣100元+很脏',
+'夜爬建议22:00左右从红门出发，刚好日出前到山顶',
+'索道：中天门-南天门单程100元，旺季排队3小时+，能坐早坐',
+'泰山顶上矿泉水10元/瓶、泡面30元，建议山下背水上去',
+'岱庙和泰山安排一天太累，建议岱庙前一天下午看',
+'别信山脚"导游"说带你逃票，都是骗人的，山路危险'
+],luggage:[
+'身份证','登山鞋(防滑!)','大容量充电宝',
+'冲锋衣/羽绒服(山顶冷)','头灯(夜爬必备)','手套+登山杖(夜爬省力)',
+'2L水+高能零食(巧克力/士力架)','暖宝宝(冬天必备)'
+]},
+jining:{name:'济宁(曲阜)',sights:[
+{name:'三孔(孔庙+孔府+孔林)',duration:'4-5小时',price:'旺季140元/淡季140元',traffic:'曲阜市内公交',tip:'世界文化遗产，孔子故里'},
+{name:'孔庙',duration:'2小时',price:'三孔通票内',traffic:'曲阜市步行',tip:'中国三大古建筑群之一，大成殿超气派'},
+{name:'孔府',duration:'1.5小时',price:'通票内',traffic:'孔庙隔壁',tip:'孔子嫡系子孙宅邸，天下第一家'},
+{name:'孔林',duration:'1.5小时',price:'通票内',traffic:'公交1路',tip:'孔子家族墓地，千年古柏林立'},
+{name:'尼山圣境',duration:'3小时',price:'160元',traffic:'曲阜南站打车30分钟',tip:'72米孔子像，金声玉振演出震撼'},
+{name:'孔子六艺城',duration:'2小时',price:'60元',traffic:'公交5路',tip:'沉浸式体验礼乐射御书数'},
+{name:'少昊陵',duration:'1小时',price:'50元',traffic:'公交2路',tip:'金字塔造型，中国金字塔'},
+{name:'孟庙孟府',duration:'2小时',price:'旺季40元/淡季30元',traffic:'邹城市公交',tip:'孟子故里，古树参天'}
+],foods:[
+{name:'孔府宴',desc:'孔府菜系，诗礼银杏、八仙过海闹罗汉'},
+{name:'曲阜煎饼',desc:'粗粮煎饼，夹大葱/馓子/虾皮'},
+{name:'孔府豆腐',desc:'熏豆腐，配辣椒油吃'},
+{name:'甏肉干饭',desc:'济宁特色，大肉块配米饭'},
+{name:'微山湖鸭蛋',desc:'流油咸鸭蛋，微山湖特产'},
+{name:'热凉菜',desc:'济宁特色凉菜，凉拌菜加热吃'
+}],areas:[
+{name:'曲阜(三孔周边)',desc:'核心景区，步行可达三孔'},
+{name:'曲阜高铁站',desc:'出行方便，酒店较新'},
+{name:'济宁市中心',desc:'交通枢纽，近微山湖'},
+{name:'邹城市',desc:'近孟庙孟府，性价比高'}
+],budget:{cheap:240,mid:480,comfort:900},
+pitfalls:[
+'三孔通票140元，学生证半价，3天有效，别分开买',
+'孔庙请讲解很有必要！不然就是看大院子，讲解费100元左右',
+'孔林很大，建议坐游览车(20元)，不然走2小时',
+'孔府"后门"出来的路很多卖孔子像的，义乌货，别买贵的',
+'尼山圣境晚上的灯光秀超震撼，建议下午去，看完表演再回',
+'曲阜的出租车不打表很常见，用滴滴吧'
+],luggage:[
+'身份证','舒适鞋(走路多)','充电宝',
+'防晒霜','雨伞(夏季多雨)','薄外套(早晚凉)',
+'水杯'
+]},
+zhengzhou:{name:'郑州',sights:[
+{name:'少林寺',duration:'4-5小时',price:'80元',traffic:'郑州中心站乘大巴1.5小时',tip:'天下第一名刹，武术表演必看'},
+{name:'黄河风景名胜区',duration:'3小时',price:'60元',traffic:'公交游16路',tip:'黄河母亲塑像，俯瞰黄河'},
+{name:'河南博物院',duration:'3小时',price:'免费(需预约)',traffic:'公交B11路',tip:'莲鹤方壶、妇好鸮尊，九大镇馆之宝'},
+{name:'二七纪念塔',duration:'1小时',price:'免费',traffic:'地铁1号线二七广场站',tip:'郑州地标，二七大罢工纪念'},
+{name:'只有河南·戏剧幻城',duration:'全天',price:'290-490元',traffic:'中牟县打车',tip:'王潮歌导演，沉浸式戏剧超震撼'},
+{name:'方特欢乐世界',duration:'全天',price:'260元',traffic:'公交游568路',tip:'主题乐园，适合亲子'},
+{name:'伏羲山',duration:'4小时',price:'各景区分开收费',traffic:'新密市包车',tip:'红石林、云上牧场，网红打卡'},
+{name:'嵩山',duration:'全天',price:'80元(太室山)',traffic:'登封市内',tip:'中岳嵩山，峻极峰登顶'}
+],foods:[
+{name:'河南烩面',desc:'合记、萧记、76人老烩面，汤面筋道'},
+{name:'胡辣汤',desc:'方中山、逍遥镇胡辣汤，配油饼/水煎包'},
+{name:'黄河大鲤鱼',desc:'阿五黄河大鲤鱼，红烧入味'},
+{name:'烩羊肉',desc:'白汤烩羊肉，配烧饼'},
+{name:'葛记焖饼',desc:'百年老字号，焖饼+红豆粥'},
+{name:'鸡蛋灌饼',desc:'早餐标配，学校门口的最正宗'}
+],areas:[
+{name:'郑州东站/高铁站',desc:'交通枢纽，出行方便'},
+{name:'二七广场/德化街',desc:'市中心商圈，购物美食'},
+{name:'金水区(花园路)',desc:'高端商圈，酒店好'},
+{name:'登封市(少林寺)',desc:'近少林寺+嵩山，推荐住一晚'}
+],budget:{cheap:260,mid:520,comfort:950},
+pitfalls:[
+'少林寺很远(登封市)，一日游时间紧，建议住登封一晚',
+'少林寺武术表演在演武厅，时间：9:30/10:30/11:30/14:00/15:00/16:00',
+'河南博物院超火！提前3天17:00放票，抢不到就白来了',
+'胡辣汤外地人可能喝不惯，方中山最辣，喝不了点微辣',
+'只有河南·戏剧幻城超赞，建议买2日票，21个剧场全看完',
+'别坐汽车站门口拉客的黑车去少林寺，要价翻倍'
+],luggage:[
+'身份证','舒适鞋(少林寺爬山)','充电宝',
+'防晒霜','雨伞(夏季多雨)','薄外套(温差)',
+'水杯'
+]},
+luoyang:{name:'洛阳',sights:[
+{name:'龙门石窟',duration:'3小时',price:'旺季90元/淡季90元',traffic:'公交53/60/81路',tip:'世界文化遗产，卢舍那大佛超震撼'},
+{name:'白马寺',duration:'2小时',price:'旺季50元/淡季35元',traffic:'公交56/58路',tip:'中国第一古刹，印度/泰国/缅甸佛殿'},
+{name:'老君山',duration:'1天',price:'100元(中灵索道130元)',traffic:'栾川县大巴2小时',tip:'远赴人间惊鸿宴，一睹人间盛世颜'},
+{name:'隋唐洛阳城(明堂天堂)',duration:'2小时',price:'旺季120元/淡季88元',traffic:'地铁1号线应天门站',tip:'武则天通天帝国，应天门灯光秀'},
+{name:'洛阳博物馆',duration:'2.5小时',price:'免费(需预约)',traffic:'公交77路',tip:'唐三彩、东汉石辟邪必看'},
+{name:'洛邑古城',duration:'2小时',price:'免费',traffic:'公交22路',tip:'汉服小姐姐拍照圣地，晚上灯光美'},
+{name:'白云山',duration:'2天',price:'旺季145元/淡季100元',traffic:'嵩县大巴3小时',tip:'中原极顶，云海日出超美'},
+{name:'重渡沟',duration:'2天',price:'120元',traffic:'栾川县大巴',tip:'千泉百瀑，避暑圣地'},
+{name:'王城公园',duration:'2小时',price:'牡丹节30元/平时免费',traffic:'地铁1号线王城公园站',tip:'洛阳牡丹，4月盛放'},
+{name:'关林',duration:'1.5小时',price:'40元',traffic:'公交55/58路',tip:'关羽首级埋葬地，武圣林庙'}
+],foods:[
+{name:'洛阳水席',desc:'真不同饭店，24道菜道道有汤，牡丹燕菜必点'},
+{name:'牛肉汤/羊肉汤',desc:'马杰山、司马坡，早喝汤是洛阳人的信仰'},
+{name:'不翻汤',desc:'洛阳特色汤，绿豆薄饼+杂料，高记不翻汤'},
+{name:'浆面条',desc:'酸浆面，洛阳家常饭'},
+{name:'横水卤肉',desc:'孟津县特产，肥而不腻'},
+{name:'潘和尚烧鸡',desc:'洛阳老字号，皮脆肉嫩'}
+],areas:[
+{name:'老城区(洛邑古城/十字街)',desc:'古韵浓厚，美食夜市多'},
+{name:'龙门石窟附近',desc:'近龙门，方便游玩'},
+{name:'西工区(应天门/明堂)',desc:'地铁方便，近应天门'},
+{name:'栾川县(老君山)',desc:'近老君山/重渡沟，住2天'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'龙门石窟建议早上8点开门就去，人少还凉快，西山石窟最精彩',
+'老君山一定要买中灵索道往返！不然爬4小时山，山顶十里画屏太值',
+'牡丹只有4月初-4月中旬开！其他季节看不到，别被"四季牡丹"骗',
+'洛阳汤是咸的！加汤免费，配烧饼/油旋最地道，早上7点去汤最浓',
+'洛邑古城汉服出租均价50元/天(包妆发)，别在门口租，往里走便宜',
+'白马寺泰国/印度/缅甸风格佛殿很出片，别只看传统中式大殿'
+],luggage:[
+'身份证','舒适运动鞋(爬山巨多)','充电宝',
+'防晒霜+遮阳帽','冲锋衣/厚外套(老君山顶冷)','雨伞(夏季多雨)',
+'保温杯(喝热水)','防滑鞋套(冬季老君山有冰)'
+]},
+kaifeng:{name:'开封',sights:[
+{name:'清明上河园',duration:'全天',price:'旺季120元/淡季90元',traffic:'公交1/15/20路',tip:'按清明上河图1:1建造，实景演出超多'},
+{name:'龙亭公园',duration:'2小时',price:'旺季45元/淡季35元',traffic:'公交1/3/20路',tip:'北宋皇宫遗址，潘杨二湖'},
+{name:'开封府',duration:'2小时',price:'65元',traffic:'公交1/4/16路',tip:'包青天府邸，开衙仪式表演'},
+{name:'大相国寺',duration:'1.5小时',price:'45元',traffic:'公交3/4/8路',tip:'鲁智深倒拔垂杨柳，千手千眼观音'},
+{name:'铁塔',duration:'1小时',price:'40元',traffic:'公交3/6/20路',tip:'千年铁塔，登塔俯瞰开封'},
+{name:'宋都御街',duration:'1小时',price:'免费',traffic:'公交1/20路',tip:'仿宋商业街，连接龙亭和市区'},
+{name:'包公祠',duration:'1小时',price:'30元',traffic:'公交8/10/16路',tip:'包拯纪念祠，廉洁教育基地'},
+{name:'万岁山武侠城',duration:'全天',price:'80元',traffic:'公交33路',tip:'武侠主题乐园，三打祝家庄实景剧'}
+],foods:[
+{name:'开封灌汤包',desc:'第一楼、黄家包子，皮薄馅大灌汤流油'},
+{name:'桶子鸡',desc:'马豫兴桶子鸡，皮脆肉嫩咸香'},
+{name:'炒凉粉',desc:'杏仁茶旁边的炒凉粉，焦香入味'},
+{name:'胡辣汤+油饼',desc:'汴京公园门口的早摊'},
+{name:'杏仁茶',desc:'西司夜市的杏仁茶，香甜滋补'},
+{name:'四味菜',desc:'开封特色汤菜，黄花菜+丸子+肉+面筋'}
+],areas:[
+{name:'龙亭区(清明上河园/龙亭)',desc:'景区集中，步行可达'},
+{name:'鼓楼区(鼓楼/西司)',desc:'夜市多，美食天堂'},
+{name:'宋城路(高铁站)',desc:'交通方便，酒店性价比高'},
+{name:'老河大周边',desc:'学生美食多，价格实惠'}
+],budget:{cheap:240,mid:480,comfort:900},
+pitfalls:[
+'清明上河园建议看《东京梦华》实景演出(249元晚场)，超震撼，看完不想走',
+'清明上河园演出时间表提前拍，跟着时间走，别错过岳飞枪挑小梁王',
+'西司夜市比鼓楼夜市本地人多，鼓楼专坑游客',
+'灌汤包一定要吃刚出笼的，"先开窗，后喝汤，满口香"',
+'开封景点很集中，龙亭/天波杨府/翰园碑林都挨着，走路就行',
+'别在景区门口买"大宋官窑"瓷器，都是景德镇批发的'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(夏季多雨)','薄外套',
+'水杯'
+]},
+anyang:{name:'安阳',sights:[
+{name:'殷墟',duration:'2.5小时',price:'旺季70元/淡季50元',traffic:'公交1/18路',tip:'世界文化遗产，甲骨文发现地，司母戊鼎'},
+{name:'中国文字博物馆',duration:'2小时',price:'免费(需预约)',traffic:'公交3/48路',tip:'唯一文字主题国家级博物馆'},
+{name:'红旗渠',duration:'4小时',price:'100元',traffic:'林州市大巴1.5小时',tip:'人工天河，红色教育+自然风光'},
+{name:'太行大峡谷',duration:'2天',price:'140元',traffic:'林州市大巴',tip:'北雄风光最胜处，王相岩刺激'},
+{name:'羑里城',duration:'1.5小时',price:'38元',traffic:'汤阴县公交',tip:'文王拘而演周易，八卦发源地'},
+{name:'岳飞庙',duration:'1.5小时',price:'38元',traffic:'汤阴县公交',tip:'岳母刺字，精忠报国'},
+{name:'袁世凯墓(袁林)',duration:'1小时',price:'35元',traffic:'公交8/23路',tip:'中西合璧陵墓，建筑独特'},
+{name:'文峰塔',duration:'0.5小时',price:'免费',traffic:'公交17/22路',tip:'上大下小的倒塔，罕见'}
+],foods:[
+{name:'安阳扁粉菜',desc:'早餐标配，粉条+豆腐+青菜+猪血，辣的过瘾'},
+{name:'粉浆饭',desc:'酸浆饭，安阳特色，外地人可能喝不惯'},
+{name:'道口烧鸡',desc:'义兴张烧鸡，四大名鸡之首'},
+{name:'内黄灌肠',desc:'猪血灌肠，煎着吃最香'},
+{name:'水冶酥烧饼',desc:'层层酥脆，芝麻飘香'},
+{name:'三不沾',desc:'安阳名菜，蛋黄炒制，不沾盘/筷/牙'}
+],areas:[
+{name:'安阳市中心',desc:'近殷墟、文字博物馆'},
+{name:'林州市',desc:'近红旗渠、太行大峡谷，住2天'},
+{name:'汤阴县',desc:'近羑里城、岳飞庙'},
+{name:'安阳高铁站',desc:'交通便利，性价比高'}
+],budget:{cheap:230,mid:460,comfort:850},
+pitfalls:[
+'殷墟一定要请讲解！不然甲骨文就是画圈圈，讲解费100元',
+'太行大峡谷建议住石板岩镇，早上看云海超美，两天玩得舒服',
+'红旗渠青年洞那段才是精华，别在分水苑就回去了',
+'扁粉菜早上才有，下午基本就收摊了，老西扁粉菜最地道',
+'文字博物馆免费但一定要提前预约，周一闭馆',
+'林县(林州市)的太行大峡谷和山西太行山大峡谷不是一个地方！别走错'
+],luggage:[
+'身份证','舒适登山鞋(大峡谷)','充电宝',
+'防晒霜+遮阳帽','冲锋衣(太行山区凉)','雨伞',
+'水杯'
+]},
+jiaozuo:{name:'焦作(云台山)',sights:[
+{name:'云台山',duration:'2天',price:'旺季120元+观光车60元',traffic:'焦作/修武乘公交',tip:'世界地质公园，红石峡超美'},
+{name:'红石峡',duration:'2小时',price:'含在通票',traffic:'景区观光车',tip:'丹霞地貌峡谷，云台山精华'},
+{name:'潭瀑峡(小寨沟)',duration:'2.5小时',price:'含在通票',traffic:'景区观光车',tip:'三步一泉五步一瀑十步一潭'},
+{name:'茱萸峰',duration:'3小时',price:'含在通票',traffic:'景区观光车',tip:'王维"遍插茱萸少一人"，玻璃栈道刺激'},
+{name:'猕猴谷',duration:'1.5小时',price:'含在通票',traffic:'景区观光车',tip:'太行猕猴群，很可爱'},
+{name:'万善寺',duration:'1小时',price:'含在通票',traffic:'景区观光车',tip:'皇家寺院，香火旺盛'},
+{name:'青龙峡',duration:'4小时',price:'旺季60元/淡季40元',traffic:'修武县包车',tip:'云台山西区，人少清净'},
+{name:'陈家沟(太极拳发源地)',duration:'2小时',price:'50元',traffic:'温县公交',tip:'太极拳发源地，学两招陈氏太极'}
+],foods:[
+{name:'焦作驴肉',desc:'闹汤驴肉，怀庆府特产'},
+{name:'怀庆府四大怀药',desc:'怀山药/怀菊花/怀地黄/怀牛膝，带些怀山药回去'},
+{name:'修武黑山羊',desc:'山羊汤，肉鲜汤浓'},
+{name:'武陟油茶',desc:'咸香炒面茶，早餐好选'},
+{name:'博爱浆面条',desc:'和洛阳浆面条类似，酸香'},
+{name:'海蟾宫松花蛋',desc:'修武特产，皮蛋不麻不涩'}
+],areas:[
+{name:'云台山景区内(岸上服务区)',desc:'推荐！景区车直达，方便游玩'},
+{name:'修武县',desc:'性价比高，离景区近'},
+{name:'焦作市区',desc:'交通枢纽，美食多'},
+{name:'温县',desc:'近陈家沟太极拳'}
+],budget:{cheap:260,mid:520,comfort:950},
+pitfalls:[
+'云台山门票+观光车180元3天有效，每个景点只能去一次，合理规划',
+'红石峡是精华！一定要早去，开门就进，不然人挤人走不动',
+'茱萸峰玻璃栈道20元另收费，有恐高症别上，真的很高',
+'住宿推荐岸上服务区，景区车首发站，离红石峡最近',
+'景区内吃饭贵，岸上服务区超市物价还行，背点水和零食进景区',
+'国庆/五一云台山人巨多，玻璃栈道排队2小时起，尽量避开'
+],luggage:[
+'身份证','舒适防水登山鞋(峡谷多水)','大容量充电宝',
+'防晒霜+遮阳帽','一次性雨衣(峡谷多雨)','换洗衣物(可能打湿)',
+'防水袋(装手机)','水杯+零食'
+]},
+nanjing:{name:'南京',sights:[
+{name:'中山陵',duration:'2小时',price:'免费(需预约)',traffic:'地铁2号线苜蓿园站',tip:'392级台阶，国父陵寝，周一闭馆'},
+{name:'夫子庙秦淮河',duration:'3小时',price:'联票100元',traffic:'地铁3号线夫子庙站',tip:'晚上画舫游秦淮河，灯火阑珊'},
+{name:'南京博物院',duration:'3小时',price:'免费(需预约)',traffic:'地铁2号线明故宫站',tip:'民国馆超适合拍照，民国街复原'},
+{name:'总统府',duration:'2.5小时',price:'旺季35元/淡季31元',traffic:'地铁2/3号线大行宫站',tip:'孙中山蒋介石办公室，近代史缩影'},
+{name:'明孝陵',duration:'2.5小时',price:'旺季70元/淡季50元',traffic:'地铁2号线苜蓿园站',tip:'朱元璋陵墓，石象路神道秋天最美'},
+{name:'侵华日军南京大屠杀遇难同胞纪念馆',duration:'2小时',price:'免费(需预约)',traffic:'地铁2号线云锦路站',tip:'铭记历史，慎带小孩'},
+{name:'鸡鸣寺',duration:'1小时',price:'10元(送3柱香)',traffic:'地铁3/4号线鸡鸣寺站',tip:'南京最古老寺庙，樱花季超级美'},
+{name:'玄武湖',duration:'2小时',price:'免费',traffic:'地铁1号线玄武门站',tip:'中国最大皇家园林湖，环湖漫步'},
+{name:'老门东',duration:'2小时',price:'免费',traffic:'地铁3号线武定门站',tip:'比夫子庙更正宗的老南京，美食多'},
+{name:'牛首山',duration:'3小时',price:'旺季98元/淡季88元',traffic:'公交754路',tip:'佛顶宫供奉释迦牟尼佛顶骨舍利，超震撼'},
+{name:'栖霞山',duration:'3.5小时',price:'旺季40元/淡季25元',traffic:'公交206路',tip:'金陵第一明秀山，秋栖霞红枫'},
+{name:'瞻园',duration:'1.5小时',price:'30元(晚票50元含演出)',traffic:'地铁3号线夫子庙站',tip:'江南四大名园，太平天国历史博物馆'}
+],foods:[
+{name:'鸭血粉丝汤',desc:'鸭得堡、小潘记，鸭杂+粉丝+汤，鲜到掉眉毛'},
+{name:'盐水鸭',desc:'韩复兴、桂花鸭，皮白肉嫩，肥而不腻'},
+{name:'牛肉锅贴',desc:'李记清真馆，七家湾牛肉锅贴，金黄酥脆'},
+{name:'赤豆元宵',desc:'莲湖糕团店，红豆稠+元宵糯，甜而不腻'},
+{name:'皮肚面',desc:'易记皮肚面，大碗皮肚+猪肝+香肠+青菜'},
+{name:'活珠子',desc:'南京特色，12天鸡胚胎，本地人爱吃'}
+],areas:[
+{name:'新街口/大行宫',desc:'市中心地铁枢纽，购物美食'},
+{name:'夫子庙/秦淮河',desc:'夜游秦淮首选，但较吵'},
+{name:'中山陵/玄武湖',desc:'环境优美，高端酒店多'},
+{name:'老门东/中华门',desc:'老南京味道，安静有格调'}
+],budget:{cheap:350,mid:700,comfort:1400},
+pitfalls:[
+'中山陵/南京博物院/总统府/纪念馆！全部需要提前预约！没预约白跑',
+'夫子庙小吃贵还不正宗，美食去隔壁老门东！排队也值',
+'明孝陵石象路11月中旬秋色最美，银杏+红枫+神兽',
+'中山陵周一闭馆，大屠杀纪念馆周一也闭馆，两个别放同一天',
+'秦淮河画舫夜游排队巨长，建议网上提前购票，18:30第一批人少',
+'鸡鸣寺求姻缘很灵，但樱花季(3月底)人山人海，要有心理准备'
+],luggage:[
+'身份证(预约全部景点)','舒适鞋(巨多走路)','大容量充电宝',
+'防晒霜+遮阳帽','雨伞(南京多雨俗称"雨京")','薄外套(空调+早晚)',
+'水杯+零食'
+]},
+suzhou:{name:'苏州',sights:[
+{name:'拙政园',duration:'2.5小时',price:'旺季70元/淡季50元',traffic:'公交游1/2/5路',tip:'中国园林之母，世界文化遗产'},
+{name:'苏州博物馆',duration:'2小时',price:'免费(需预约)',traffic:'公交202/309路',tip:'贝聿铭设计，建筑本身就是艺术品'},
+{name:'虎丘',duration:'2.5小时',price:'旺季70元/淡季60元',traffic:'公交游1/32路',tip:'姑苏第一名胜，剑池+虎丘塔'},
+{name:'寒山寺',duration:'1.5小时',price:'20元',traffic:'公交游3/301路',tip:'姑苏城外寒山寺，夜半钟声到客船'},
+{name:'平江路历史街区',duration:'2.5小时',price:'免费',traffic:'公交游2/202路',tip:'小桥流水人家，苏州古城缩影'},
+{name:'周庄古镇',duration:'1-2天',price:'旺季100元/淡季80元',traffic:'苏州北/汽车南站乘大巴1.5小时',tip:'中国第一水乡，双桥+沈厅'},
+{name:'同里古镇',duration:'1天',price:'旺季100元/淡季80元',traffic:'地铁4号线同里站',tip:'退思园是世界文化遗产，比周庄人少'},
+{name:'狮子林',duration:'1.5小时',price:'旺季40元/淡季30元',traffic:'公交游1/2/5路',tip:'假山王国，贝聿铭家祠堂花园'},
+{name:'留园',duration:'1.5小时',price:'旺季55元/淡季45元',traffic:'公交游1/406路',tip:'江南四大名园，冠云峰太湖石'},
+{name:'山塘街',duration:'2小时',price:'免费',traffic:'地铁2号线山塘街站',tip:'姑苏第一名街，七里山塘到虎丘'},
+{name:'金鸡湖',duration:'2.5小时',price:'免费',traffic:'地铁1号线东方之门站',tip:'苏州新地标，秋裤楼+东方之门'},
+{name:'网师园',duration:'1.5小时',price:'旺季40元/淡季30元',traffic:'公交202/529路',tip:'小园极则，夜游有昆曲表演'}
+],foods:[
+{name:'松鼠桂鱼',desc:'松鹤楼、得月楼，苏帮菜招牌，酸甜酥脆'},
+{name:'阳澄湖大闸蟹',desc:'9-11月最肥，巴城/莲花岛去吃'},
+{name:'生煎包',desc:'哑巴生煎、大阿二生煎，皮薄底脆汁多'},
+{name:'苏式汤面',desc:'奥灶面、朱鸿兴，红汤/白汤+浇头'},
+{name:'糖粥',desc:'潘玉麟糖粥，赤豆小圆子+桂花糖粥'},
+{name:'梅花糕/海棠糕',desc:'山塘街/平江路，现烤现卖，甜糯可口'}
+],areas:[
+{name:'姑苏区(观前街/平江路)',desc:'老城区，园林集中，古韵十足'},
+{name:'金鸡湖/工业园区',desc:'新城区，现代奢华，东方之门夜景'},
+{name:'山塘街/石路',desc:'近山塘街+虎丘，交通方便'},
+{name:'周庄镇/同里镇',desc:'住古镇一晚，清晨无人的水乡最美'}
+],budget:{cheap:350,mid:700,comfort:1400},
+pitfalls:[
+'苏州博物馆超难约！提前7天0点放票，晚了抢不到，贝聿铭封山之作必看',
+'拙政园+苏州博物馆+狮子林+平江路挨着，一天走完，别分散',
+'周庄/同里选一个就行！推荐同里，人少清净，地铁直达更方便',
+'不要在平江路买丝绸！景区贵还可能假，去观前街老字号瑞富祥',
+'生煎推荐：临顿路哑巴生煎(排队1小时也要吃)，比网红店地道',
+'大闸蟹10月中旬公蟹膏最满，11月母蟹黄最厚，别太早去'
+],luggage:[
+'身份证(苏博预约)','舒适鞋(园林全是石板路)','充电宝',
+'防晒霜+遮阳伞(苏州多雨)','薄外套(空调+湖边凉)','防蚊液(古镇蚊子多)',
+'水杯'
+]},
+wuxi:{name:'无锡',sights:[
+{name:'灵山大佛',duration:'4小时',price:'210元',traffic:'公交88/89路',tip:'88米青铜大佛，九龙灌浴+梵宫超震撼'},
+{name:'鼋头渚',duration:'4-5小时',price:'旺季90元/淡季50元',traffic:'公交1/游1路',tip:'太湖最佳处，3月底樱花谷超美'},
+{name:'惠山古镇',duration:'2.5小时',price:'免费(祠堂群70元)',traffic:'公交4/15/81路',tip:'无锡老味道，寄畅园+天下第二泉'},
+{name:'南禅寺/南长街',duration:'2.5小时',price:'免费',traffic:'地铁1号线南禅寺站',tip:'千年古寺+清明桥历史街区，夜景美'},
+{name:'蠡园',duration:'2小时',price:'旺季45元/淡季30元',traffic:'公交1/82路',tip:'范蠡西施隐居地，太湖边精致园林'},
+{name:'三国城/水浒城',duration:'3.5小时',price:'联票150元',traffic:'公交82路',tip:'央视影视基地，三英战吕布表演'},
+{name:'荡口古镇',duration:'3小时',price:'80元',traffic:'公交712/721路',tip:'比周庄人少，原汁原味水乡'},
+{name:'宜兴竹海',duration:'4小时',price:'旺季80元/淡季60元',traffic:'宜兴市大巴1小时',tip:'万亩竹海，天然氧吧'},
+{name:'善卷洞',duration:'2.5小时',price:'旺季130元/淡季100元',traffic:'宜兴市公交',tip:'宜兴三奇之首，梁山伯祝英台传说'},
+{name:'渤公岛',duration:'1.5小时',price:'免费',traffic:'公交36/53路',tip:'免费太湖湿地公园，散步骑行'}
+],foods:[
+{name:'无锡小笼包',desc:'熙盛源、王兴记，皮薄汁多偏甜'},
+{name:'酱排骨',desc:'三凤桥肉庄，无锡三绝之一，浓油赤酱'},
+{name:'清水油面筋',desc:'塞肉红烧，无锡特色'},
+{name:'太湖三白',desc:'白鱼/白虾/银鱼，清蒸最鲜'},
+{name:'玉兰饼',desc:'毛华美食，外皮金黄，内馅饱满'},
+{name:'阳山水蜜桃',desc:'7-8月上市，汁多到能吸，无锡特产'}
+],areas:[
+{name:'梁溪区(南禅寺/崇安寺)',desc:'市中心，交通美食方便'},
+{name:'滨湖区(鼋头渚/蠡园)',desc:'太湖边，风景优美'},
+{name:'马山(灵山大佛)',desc:'近灵山，适合深度游'},
+{name:'宜兴市',desc:'近竹海/善卷洞，紫砂壶之乡'}
+],budget:{cheap:320,mid:640,comfort:1250},
+pitfalls:[
+'灵山大佛梵宫超华丽，一定看《吉祥颂》演出(含门票)，11点/14点/16点',
+'鼋头渚3月下旬樱花季是中国第一，比日本美，但人巨多，建议一早去',
+'无锡小笼包真的很甜！吃不惯甜的别多点，熙盛源最正宗',
+'惠山古镇免费！别买联票，外面逛逛+吃吃小吃就够了',
+'阳山水蜜桃7月中旬-8月中旬最好，早了没味道，晚了下市了',
+'灵山大佛很远(马山区)，路上要1.5小时，安排大半天'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(多雨)','薄外套(太湖边凉)',
+'水杯'
+]},
+yangzhou:{name:'扬州',sights:[
+{name:'瘦西湖',duration:'3小时',price:'旺季100元/淡季60元',traffic:'公交游1/4路',tip:'二十四桥明月夜，玉人何处教吹箫'},
+{name:'大明寺',duration:'1.5小时',price:'旺季45元/淡季30元',traffic:'公交游1/25路',tip:'鉴真和尚东渡之地，栖灵塔登高'},
+{name:'个园',duration:'1.5小时',price:'旺季45元/淡季30元',traffic:'公交游1/8路',tip:'以竹为名，四季假山绝妙'},
+{name:'何园',duration:'1.5小时',price:'旺季45元/淡季30元',traffic:'公交19/209路',tip:'晚清第一园，复道回廊很妙'},
+{name:'东关街',duration:'2小时',price:'免费',traffic:'公交游1/8路',tip:'千年老街，谢馥春、四美酱园'},
+{name:'大运河博物馆',duration:'3小时',price:'免费(需预约)',traffic:'公交56/82路',tip:'媲美南京博物院，巨型沉浸式展厅'},
+{name:'汪氏小苑',duration:'1.5小时',price:'旺季35元/淡季25元',traffic:'公交4/12路',tip:'徽派盐商大宅，木雕精美'},
+{name:'茱萸湾',duration:'2.5小时',price:'45元',traffic:'公交32路',tip:'扬州动植物园，亲子首选'},
+{name:'皮市街',duration:'1.5小时',price:'免费',traffic:'公交2/12路',tip:'文艺小街，咖啡馆+老书店'},
+{name:'冶春茶社(御马头店)',duration:'2小时',price:'人均80元',traffic:'公交游1/27路',tip:'百年早茶老店，临水用餐'}
+],foods:[
+{name:'扬州早茶',desc:'富春/冶春/趣园，三丁包+蟹黄汤包+烫干丝+魁龙珠茶'},
+{name:'扬州炒饭',desc:'正宗扬州炒饭有10种配料，粒粒分明'},
+{name:'大煮干丝',desc:'豆腐干切丝+鸡汤+虾仁，淮扬菜代表'},
+{name:'蟹粉狮子头',desc:'清蒸肉丸子+蟹粉，肥而不腻入口即化'},
+{name:'盐水鹅',desc:'黄珏老鹅，扬州人标配下酒菜'},
+{name:'牛皮糖',desc:'绿叶牌牛皮糖，芝麻嚼劲十足，特产伴手礼'}
+],areas:[
+{name:'文昌阁/东关街',desc:'市中心，景点集中，步行可达'},
+{name:'瘦西湖/大明寺',desc:'近核心景区，环境好'},
+{name:'三湾(大运河博物馆)',desc:'新景区，博物馆超赞'},
+{name:'扬州站/西站',desc:'交通方便，性价比高'}
+],budget:{cheap:300,mid:600,comfort:1200},
+pitfalls:[
+'扬州早茶一定要吃！趣园、冶春、富春，7点开门就去，晚了排队2小时',
+'瘦西湖+大明寺+个园+东关街，可以步行串起来，省打车费',
+'大运河博物馆超火！提前3天预约，不然进不去，比想象中好太多',
+'别只逛东关街！旁边的皮市街、彩衣街更有味道，人也少',
+'扬州修脚是特色，推荐：陆琴脚艺，体验一把正宗扬州三把刀',
+'扬州炒饭推荐：扬州炒饭协会认证店，路边小馆都比外地的好'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','雨伞(多雨)','薄外套(早晚凉)',
+'水杯'
+]},
+zhenjiang:{name:'镇江',sights:[
+{name:'金山寺',duration:'2小时',price:'旺季65元/淡季50元',traffic:'公交2/8/102路',tip:'白娘子水漫金山，江天禅寺登高'},
+{name:'焦山',duration:'2.5小时',price:'旺季65元/淡季50元',traffic:'公交D3/49路',tip:'江中岛屿，碑林+古炮台，坐轮渡上岛'},
+{name:'北固山',duration:'1.5小时',price:'旺季40元/淡季30元',traffic:'公交4/8/25路',tip:'何处望神州满眼风光北固楼，刘备甘露寺招亲'},
+{name:'西津渡',duration:'2小时',price:'免费(古街)',traffic:'公交8/14/29路',tip:'千年古渡，一眼看千年，夜景超美'},
+{name:'南山风景区',duration:'2.5小时',price:'旺季40元/淡季30元',traffic:'公交15/18路',tip:'城市山林，招隐寺+竹林寺'},
+{name:'镇江博物馆',duration:'1.5小时',price:'免费',traffic:'公交8/14路',tip:'原英国领事馆，建筑很美'},
+{name:'圌山',duration:'3小时',price:'免费',traffic:'公交211路',tip:'五峰山长江大桥观景，报恩塔'},
+{name:'茅山',duration:'4小时',price:'旺季100元/淡季80元',traffic:'句容市大巴1小时',tip:'道教上清派发源地，第一福地'}
+],foods:[
+{name:'镇江锅盖面',desc:'伙长、邵顺兴、大华面馆，面锅里煮锅盖，独特风味'},
+{name:'肴肉(水晶肴蹄)',desc:'宴春酒楼，皮白肉红，蘸醋吃，冷盘第一名'},
+{name:'蟹黄汤包',desc:'宴春酒楼，吸管喝汤，薄如蝉翼'},
+{name:'香醋',desc:'恒顺香醋，镇江三怪之首，带两瓶回家'},
+{name:'鸭血粉丝汤',desc:'妯娌鸭血粉丝，老鸭汤底料足'},
+{name:'京江脐',desc:'六角糕点，脆酥香甜，传统小吃'}
+],areas:[
+{name:'大市口(市中心)',desc:'交通枢纽，购物美食'},
+{name:'西津渡',desc:'古韵十足，夜景一流，推荐住客栈'},
+{name:'金山寺周边',desc:'近金山、北固山'},
+{name:'句容市(茅山)',desc:'近茅山景区，住1-2天'}
+],budget:{cheap:260,mid:520,comfort:950},
+pitfalls:[
+'金山焦山北固山(三山)靠长江，可以安排一天，公交连起来很顺',
+'锅盖面推荐：大西路大华面馆(本地人常去)，景区的贵还不正宗',
+'肴肉一定要蘸姜丝醋吃！不然味道淡，宴春酒楼的最正宗',
+'西津渡夜景比白天好看10倍，傍晚过去玩到晚上',
+'茅山是道教圣地，门口"算命大师"别信，都是骗子',
+'恒顺醋文化博物馆可以参观，能买到年份醋，比超市品种多'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','雨伞(多雨)','薄外套',
+'水杯'
+]},
+xuzhou:{name:'徐州',sights:[
+{name:'云龙湖',duration:'2.5小时',price:'免费',traffic:'公交38/49/601路',tip:'杭州西湖姊妹湖，湖光山色'},
+{name:'徐州博物馆',duration:'2小时',price:'免费(需预约)',traffic:'公交11/19/35路',tip:'汉代楚王陵出土文物，金缕玉衣'},
+{name:'龟山汉墓',duration:'2小时',price:'旺季80元/淡季60元',traffic:'公交37路',tip:'西汉楚王刘注墓，地下宫殿'},
+{name:'云龙山',duration:'2小时',price:'免费',traffic:'公交2/11/64路',tip:'九节山形如卧龙，放鹤亭观景'},
+{name:'户部山古民居',duration:'2小时',price:'50元',traffic:'公交19/20/51路',tip:'明清古建筑群，余家大院+翟家大院'},
+{name:'汉文化景区(楚王陵)',duration:'3小时',price:'旺季90元/淡季80元',traffic:'公交5/60/65路',tip:'狮子山楚王陵+汉兵马俑+水下兵马俑'},
+{name:'戏马台',duration:'1.5小时',price:'30元',traffic:'公交19/20/65路',tip:'项羽观戏马之地，楚汉文化'},
+{name:'窑湾古镇',duration:'3小时',price:'旺季80元/淡季60元',traffic:'新沂市大巴1.5小时',tip:'京杭大运河第一古镇，明清建筑'}
+],foods:[
+{name:'徐州地锅鸡',desc:'老家地锅、大张烙馍村，锅饼蘸汤绝了'},
+{name:'饣它汤(shá)',desc:'马市街饣它汤，千年古汤，鸡汤+麦仁+鸡蛋'},
+{name:'烙馍卷馓子',desc:'薄如纸的烙馍+酥脆馓子，徐州特色'},
+{name:'把子肉',desc:'怪味愚把子肉，配米饭老汤入味'},
+{name:'蜜三刀/羊角蜜',desc:'徐州传统糕点，甜食爱好者'},
+{name:'羊肉',desc:'伏羊节吃羊肉，徐州人夏季最爱'}
+],areas:[
+{name:'市中心(彭城广场)',desc:'地铁枢纽，购物美食'},
+{name:'云龙湖周边',desc:'湖景优美，高端酒店'},
+{name:'徐州东站(高铁站)',desc:'交通方便，性价比高'},
+{name:'新沂市(窑湾)',desc:'近窑湾古镇，深度游'}
+],budget:{cheap:250,mid:500,comfort:900},
+pitfalls:[
+'龟山汉墓一定要下墓道看！2000年前的精准工程，塞石几吨重',
+'饣它汤名字生僻，念"啥汤"，早餐喝的，马市街最老',
+'地锅鸡推荐大张烙馍村，本地人聚餐地，分量超大',
+'云龙湖免费，可以租自行车环湖，夏天有荷花',
+'伏羊节(每年初伏-末伏)徐州吃羊肉，全城的馆子都是羊肉',
+'汉文化景区很大，建议买观光车，步行太累'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','雨伞','薄外套',
+'水杯'
+]},
+changzhou:{name:'常州',sights:[
+{name:'中华恐龙园',duration:'全天',price:'260元',traffic:'公交302/50路',tip:'东方侏罗纪，过山车+演出超刺激'},
+{name:'天目湖',duration:'2天',price:'180元(含游船)',traffic:'溧阳市大巴1小时',tip:'江南明珠，山水园+南山竹海'},
+{name:'南山竹海',duration:'4小时',price:'90元',traffic:'溧阳市大巴',tip:'万亩翠竹，地轨缆车+鸡鸣村'},
+{name:'淹城春秋乐园',duration:'全天',price:'190元',traffic:'公交68/75/80路',tip:'春秋主题，实景演出超赞'},
+{name:'天宁寺',duration:'1.5小时',price:'20元(登塔另收60元)',traffic:'公交11/220路',tip:'东南第一丛林，天宁宝塔祈福'},
+{name:'红梅公园',duration:'1.5小时',price:'免费',traffic:'公交11/220路',tip:'常州最大公园，红梅阁文笔塔'},
+{name:'青果巷',duration:'2小时',price:'免费',traffic:'公交2/33/42路',tip:'江南名士第一巷，历史文化街区'},
+{name:'东方盐湖城',duration:'1-2天',price:'150元',traffic:'金坛区大巴',tip:'道天下主题，国风小镇，夜游更美'},
+{name:'恐龙人俱乐部',duration:'2小时',price:'各项目收费',traffic:'恐龙园隔壁',tip:'真人CS+密室逃脱，适合年轻人'}
+],foods:[
+{name:'银丝面',desc:'味香斋、双桂坊，细如银丝，鸡汤底'},
+{name:'大麻糕',desc:'常州麻糕店，芝麻酥脆，甜咸两种'},
+{name:'天目湖砂锅鱼头',desc:'天目湖宾馆，朱顺才大师鱼头汤，奶白鲜美'},
+{name:'网油卷',desc:'常州特色，猪网油包豆沙，甜而不腻'},
+{name:'糟扣肉',desc:'酒糟蒸制，软烂入味，常州家常菜'},
+{name:'萝卜干炒饭',desc:'常州萝卜干是特产，炒饭喷香'}
+],areas:[
+{name:'常州市中心(南大街)',desc:'地铁枢纽，购物美食'},
+{name:'恐龙园周边',desc:'近恐龙园，亲子游首选'},
+{name:'溧阳市(天目湖)',desc:'近天目湖+南山竹海，住2天'},
+{name:'金坛区',desc:'近东方盐湖城，国风度假'}
+],budget:{cheap:280,mid:560,comfort:1100},
+pitfalls:[
+'天目湖砂锅鱼头只有天目湖宾馆的最正宗，别在路边店吃',
+'恐龙园买早享卡，热门项目排队1小时+，建议工作日去',
+'南山竹海有两段索道，建议买地轨+架空索道联票',
+'青果巷免费，比苏州平江路人少，很有文化气息',
+'东方盐湖城建议下午进，晚上灯光秀+演出超好看',
+'淹城春秋乐园的"梦回春秋"飞行影院必看，超震撼'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','一次性雨衣(主题乐园玩水)','薄外套',
+'水杯+小零食'
+]},
+hangzhou:{name:'杭州',sights:[
+{name:'西湖',duration:'3-4小时',price:'免费',traffic:'地铁1号线龙翔桥站',tip:'断桥→苏堤→雷峰塔，建议租自行车环湖'},
+{name:'灵隐寺(飞来峰)',duration:'2.5小时',price:'飞来峰45元+灵隐30元',traffic:'公交7/游2路',tip:'千年古刹，济公出家之地，记得买香花券'},
+{name:'千岛湖',duration:'2天',price:'旺季150元/淡季120元',traffic:'杭州西站乘大巴2小时',tip:'天下第一秀水，梅峰岛观景台最佳'},
+{name:'宋城',duration:'全天',price:'320元(含演出)',traffic:'公交4/308路',tip:'宋城千古情演出必看，一生必看的演出'},
+{name:'西溪湿地',duration:'3小时',price:'80元(含电瓶船)',traffic:'地铁5号线蒋村站',tip:'非诚勿扰取景地，摇橹船慢游'},
+{name:'雷峰塔',duration:'1.5小时',price:'40元',traffic:'公交4/31/51路',tip:'登塔俯瞰西湖全景，夕照雷峰'},
+{name:'河坊街',duration:'2小时',price:'免费',traffic:'地铁7号线吴山广场站',tip:'南宋御街，胡庆余堂+小吃'},
+{name:'龙井村/十里琅珰',duration:'3小时',price:'免费',traffic:'公交27路',tip:'采茶体验，徒步龙井茶山'},
+{name:'京杭大运河(拱宸桥)',duration:'2小时',price:'免费',traffic:'地铁5号线大运河站',tip:'桥西历史街区，手工艺活态馆'},
+{name:'法喜寺',duration:'1.5小时',price:'10元',traffic:'公交103/1314路',tip:'网红寺庙，求姻缘很灵，1314路公交浪漫'},
+{name:'良渚古城遗址公园',duration:'3小时',price:'60元',traffic:'地铁2号线良渚站',tip:'中华五千年文明实证地'},
+{name:'湘湖',duration:'2.5小时',price:'免费',traffic:'地铁1号线湘湖站',tip:'西湖姊妹湖，人少清静'}
+],foods:[
+{name:'西湖醋鱼',desc:'楼外楼、知味观，酸甜鲜嫩，别用草鱼'},
+{name:'东坡肉',desc:'杭州酒家、楼外楼，肥而不腻入口即化'},
+{name:'龙井虾仁',desc:'龙井茶配河虾仁，清新雅致'},
+{name:'片儿川',desc:'奎元馆、菊英面馆，雪菜笋片肉丝面'},
+{name:'葱包桧',desc:'孙奶奶葱包桧，路边小吃，配甜面酱'},
+{name:'定胜糕',desc:'河坊街购买，米粉制作，香甜软糯'}
+],areas:[
+{name:'西湖周边(湖滨/南山路)',desc:'近西湖，出行方便，价格较高'},
+{name:'武林广场/延安路',desc:'市中心，地铁枢纽'},
+{name:'河坊街/南宋御街',desc:'古韵浓厚，美食多'},
+{name:'钱江新城',desc:'新城区，灯光秀很赞'}
+],budget:{cheap:350,mid:700,comfort:1500},
+pitfalls:[
+'西湖十景分散，别一天全走完，租电动车最方便(约30元/天)',
+'灵隐寺要先买飞来峰门票(45元)才能买灵隐寺香花券(30元)',
+'千岛湖不要在码头吃鱼头！去排岭镇上的馆子，便宜一半',
+'西湖游船别坐手划船(150元/小时坑)，坐公家船(55元到三潭印月)',
+'河坊街小吃贵，本地人去旁边的高银街吃',
+'法喜寺周五/六/日晚上有萤火虫，夏天别错过'
+],luggage:[
+'身份证','舒适鞋','大容量充电宝',
+'防晒霜+遮阳伞(杭州太阳毒)','薄外套(空调+湖边凉)','防蚊液(山里/湿地多)',
+'水杯'
+]},
+ningbo:{name:'宁波',sights:[
+{name:'天一阁',duration:'2小时',price:'30元',traffic:'地铁4号线兴宁桥西站',tip:'亚洲最古老私人藏书楼，范钦故居'},
+{name:'老外滩',duration:'2小时',price:'免费',traffic:'地铁2号线外滩大桥站',tip:'比上海外滩老！甬江边酒吧街'},
+{name:'东钱湖',duration:'3小时',price:'免费(各景点收费)',traffic:'公交901/906路',tip:'浙江第一大湖，小普陀+福泉山'},
+{name:'溪口(蒋氏故里)',duration:'全天',price:'旺季230元/淡季180元',traffic:'汽车南站乘大巴1小时',tip:'蒋介石故乡，丰镐房+雪窦山'},
+{name:'南塘老街',duration:'2小时',price:'免费',traffic:'地铁4号线南塘老街站',tip:'宁波传统美食街，比老外滩接地气'},
+{name:'天一广场',duration:'1.5小时',price:'免费',traffic:'地铁1/2号线鼓楼站',tip:'宁波最大商圈，音乐喷泉'},
+{name:'普陀山',duration:'1-2天',price:'旺季160元/淡季140元',traffic:'宁波→舟山→朱家尖码头乘船',tip:'四大佛教名山，观音菩萨道场'},
+{name:'象山影视城',duration:'4小时',price:'150元',traffic:'象山县大巴1.5小时',tip:'琅琊榜/神雕侠侣取景地'},
+{name:'阿育王寺',duration:'1.5小时',price:'免费',traffic:'公交750/759路',tip:'供奉释迦牟尼佛真身舍利'},
+{name:'鼓楼',duration:'1小时',price:'免费',traffic:'地铁1/2号线鼓楼站',tip:'宁波地标，小吃很多'}
+],foods:[
+{name:'宁波汤圆',desc:'缸鸭狗，黑芝麻猪油馅，冬至必吃'},
+{name:'红膏呛蟹',desc:'咸蟹，生腌梭子蟹，膏红肉嫩'},
+{name:'海鲜面',desc:'象山海鲜面，一碗面十几种海鲜'},
+{name:'宁波年糕',desc:'慈城年糕，炒年糕/汤年糕，Q弹不粘牙'},
+{name:'黄泥螺',desc:'生腌泥螺，配泡饭绝了，宁波人的爱'},
+{name:'油赞子',desc:'鼓楼王阿姨文昌油赞子，甜咸两种，酥脆'}
+],areas:[
+{name:'天一广场/鼓楼',desc:'市中心，地铁枢纽'},
+{name:'老外滩/三江口',desc:'江景房，夜景好'},
+{name:'东钱湖',desc:'度假首选，湖景酒店多'},
+{name:'溪口镇',desc:'近蒋氏故里+雪窦山'}
+],budget:{cheap:300,mid:600,comfort:1200},
+pitfalls:[
+'普陀山从宁波去要2小时+船程，至少安排1.5天，时间紧就放弃',
+'溪口联票230元含雪窦山+蒋氏故里+观光车，分开买更贵',
+'吃海鲜推荐：白沙码头海鲜广场，本地人常去，不要在老外滩吃',
+'东钱湖推荐租电动车环湖，比坐车更自由',
+'南塘老街比老外滩适合吃小吃，缸鸭狗、油赞子都有',
+'宁波人爱吃咸，海鲜很多都是生腌/腌笃鲜，吃不惯提前说'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞','薄外套',
+'肠胃药(生腌海鲜)','防蚊液'
+]},
+wenzhou:{name:'温州',sights:[
+{name:'雁荡山',duration:'2天',price:'灵峰50元+灵岩50元+大龙湫50元',traffic:'温州南站乘动车30分钟到雁荡山站',tip:'东南第一山，灵峰夜景+灵岩飞渡必看'},
+{name:'江心屿',duration:'2.5小时',price:'30元(含船票)',traffic:'公交28/41/51路到江心码头',tip:'瓯江蓬莱，东西双塔+江心寺'},
+{name:'楠溪江',duration:'2天',price:'各景区分开约50-70元',traffic:'瓯北码头乘大巴1小时',tip:'山水画廊，竹筏漂流+古村落'},
+{name:'南麂岛',duration:'2-3天',price:'100元(门票+船票约230元)',traffic:'鳌江港乘快艇1.5小时',tip:'贝藻王国，中国最美海岛之一'},
+{name:'五马街',duration:'2小时',price:'免费',traffic:'公交1/4/103路',tip:'温州百年商业街，历史建筑'},
+{name:'泰顺廊桥',duration:'2天',price:'各景点免费~30元',traffic:'泰顺县包车',tip:'世界最美廊桥，泗溪姐妹桥'},
+{name:'印象南塘',duration:'1.5小时',price:'免费',traffic:'公交20/28路',tip:'南塘风貌街，夜景很美'},
+{name:'大罗山',duration:'3.5小时',price:'免费',traffic:'公交117/大罗山班线',tip:'龙脊徒步，俯瞰温州全城'}
+],foods:[
+{name:'温州鱼丸',desc:'强能鱼丸、天一角，鮸鱼制作，Q弹汤鲜'},
+{name:'糯米饭',desc:'街头早餐，油条碎+肉松+肉汤，温州人回忆'},
+{name:'灯盏糕',desc:'大王灯盏糕，萝卜丝+肉馅，油炸酥脆'},
+{name:'楠溪江麦饼',desc:'梅干菜肉馅，现烤喷香'},
+{name:'江蟹生',desc:'生腌梭子蟹块，酸甜咸鲜，温州招牌'},
+{name:'炒粉干',desc:'温州粉干细如发丝，加海鲜炒'}
+],areas:[
+{name:'五马街/大南门',desc:'市中心，购物美食'},
+{name:'瓯海区(大学城)',desc:'性价比高，年轻氛围'},
+{name:'乐清市(雁荡山)',desc:'近雁荡山，住1-2天'},
+{name:'永嘉县(楠溪江)',desc:'近楠溪江，深度游推荐'}
+],budget:{cheap:260,mid:520,comfort:1000},
+pitfalls:[
+'雁荡山最经典是"二灵一龙"(灵峰日/夜景+灵岩+大龙湫)，买联票便宜',
+'灵峰白天和晚上是两个景区！要收两次门票，夜景18:00开始超梦幻',
+'楠溪江推荐：狮子岩竹筏漂流+丽水古街+芙蓉古村，包车最方便',
+'南麂岛船票超难买！旺季提前一周在"南麂客运"公众号抢，大风天停航',
+'温州糯米饭认准：三姐妹、粒粒炊、老仓桥，街边小推车上的也正宗',
+'泰顺廊桥很分散，建议自驾/包车，三魁镇→泗溪镇→雅阳镇顺路'
+],luggage:[
+'身份证','舒适登山鞋/防水鞋','大容量充电宝',
+'防晒霜+遮阳帽','一次性雨衣(山里多雨)','换洗衣物(海岛/漂流)',
+'肠胃药(江蟹生生腌)','防水袋'
+]},
+huzhou:{name:'湖州',sights:[
+{name:'南浔古镇',duration:'3小时',price:'旺季100元/淡季80元',traffic:'湖州汽车总站乘大巴1小时',tip:'江南六大古镇，小莲庄+藏书楼+百间楼'},
+{name:'莫干山',duration:'2天',price:'旺季80元/淡季50元',traffic:'德清县乘大巴1小时',tip:'清凉世界，民国别墅群，裸心谷'},
+{name:'安吉竹海(中国大竹海)',duration:'3小时',price:'58元',traffic:'安吉县公交',tip:'卧虎藏龙取景地，万亩竹海'},
+{name:'Hello Kitty乐园',duration:'全天',price:'290元',traffic:'安吉县打车',tip:'全球首个Hello Kitty主题乐园'},
+{name:'新市古镇',duration:'2小时',price:'50元',traffic:'德清县公交',tip:'千年运河古镇，羊肉黄酒超赞'},
+{name:'飞英塔',duration:'1小时',price:'20元',traffic:'市区公交',tip:'塔中塔，湖州三绝之一'},
+{name:'衣裳街',duration:'1.5小时',price:'免费',traffic:'公交1/2路',tip:'湖州老巷，丁连芳千张包'},
+{name:'太湖旅游度假区',duration:'2.5小时',price:'免费',traffic:'公交50路',tip:'南太湖，渔人码头看月亮酒店'}
+],foods:[
+{name:'丁连芳千张包',desc:'百年老字号，千张皮包肉馅'},
+{name:'诸老大粽子',desc:'湖州粽子，鲜肉/洗沙口味'},
+{name:'双交面',desc:'爆鱼+酥肉双浇头，练市羊肉面'},
+{name:'周生记馄饨',desc:'大馄饨，皮薄馅大汤鲜'},
+{name:'安吉白茶',desc:'中国名茶，鲜爽回甘，带两斤回去'},
+{name:'新市酱羊肉',desc:'新市镇特产，红烧带皮羊肉'}
+],areas:[
+{name:'湖州市中心',desc:'交通便利，近飞英塔、衣裳街'},
+{name:'德清县(莫干山)',desc:'民宿圣地，住1-2晚'},
+{name:'安吉县',desc:'近竹海+Hello Kitty乐园'},
+{name:'南浔区',desc:'近南浔古镇，住一晚看夜景'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'莫干山民宿超贵！提前1个月订，周末价格翻倍，预算不够住德清县城',
+'南浔古镇百间楼景区免费，别只买门票逛小莲庄，一定要去百间楼',
+'安吉大竹海和安吉竹博园不是一个！别走错，大竹海是卧虎藏龙取景地',
+'湖州衣裳街吃的推荐：周生记馄饨、丁连芳千张包，现做的才好吃',
+'新市古镇每年农历九月初九有羊肉黄酒节，超热闹',
+'太湖月亮酒店拍照好看，住宿太贵，旁边渔人码头吃饭就行'
+],luggage:[
+'身份证','舒适登山鞋','充电宝',
+'防晒霜+遮阳帽','薄外套(山区凉)','雨伞(江南多雨)',
+'水杯+防蚊液'
+]},
+jiaxing:{name:'嘉兴',sights:[
+{name:'乌镇',duration:'1-2天',price:'东栅110元+西栅150元/联票190元',traffic:'桐乡高铁站乘公交K282',tip:'江南枕水人家，西栅夜景超美必住一晚'},
+{name:'西塘',duration:'1天',price:'95元',traffic:'嘉善南站乘公交K222',tip:'烟雨长廊，生活着的千年古镇'},
+{name:'南湖',duration:'2.5小时',price:'免费(湖心岛50元含船)',traffic:'公交1/8路',tip:'中共一大红船会址，烟雨楼'},
+{name:'月河历史街区',duration:'2小时',price:'免费',traffic:'公交6/24路',tip:'比西塘乌镇人少，粽子博物馆'},
+{name:'南北湖',duration:'3小时',price:'80元',traffic:'海盐县公交',tip:'山、海、湖一体，杭州湾畔'},
+{name:'盐官观潮',duration:'全天',price:'联票100元',traffic:'海宁火车/汽车站乘公交',tip:'钱塘江大潮，农历初一/十五前后最壮观'},
+{name:'梅花洲',duration:'2小时',price:'60元',traffic:'南湖区公交',tip:'三步两爿桥，千年古银杏'},
+{name:'绮园',duration:'1.5小时',price:'50元',traffic:'海盐县公交',tip:'江南十大名园，87版红楼梦取景'}
+],foods:[
+{name:'嘉兴粽子',desc:'五芳斋、真真老老，鲜肉/蛋黄肉粽'},
+{name:'南湖菱',desc:'无角菱角，生吃脆甜，煮熟粉糯'},
+{name:'文虎酱鸭',desc:'嘉兴特产，卤味浓郁'},
+{name:'桐乡煲',desc:'桐乡特色，鸡脚明虾煲超下饭'},
+{name:'西塘粉蒸肉',desc:'荷叶粉蒸肉，肥而不腻'},
+{name:'乌镇酱鸡',desc:'乌镇老字号，三白酒腌制'}
+],areas:[
+{name:'嘉兴市中心(南湖)',desc:'近南湖、月河街'},
+{name:'桐乡市(乌镇)',desc:'强烈建议住西栅内一晚，看晨景夜景'},
+{name:'嘉善县(西塘)',desc:'近西塘古镇，下午进园可看夜景'},
+{name:'海宁市(盐官)',desc:'近观潮胜地，注意潮水时间'}
+],budget:{cheap:280,mid:560,comfort:1200},
+pitfalls:[
+'乌镇东栅+西栅买联票190元便宜，但是西栅一定要住一晚！清晨无人的乌镇最美',
+'西塘门票95元，工作日下午4点后、周末下午5点后免票，可算好时间',
+'观潮时间每月农历初一至初五、十五至二十，日潮约中午，提前查预报',
+'月河街免费！比乌镇西塘近，时间紧就逛这里，粽子博物馆也在这',
+'五芳斋粽子推荐：大肉粽+蛋黄肉粽，真真老老的传人粽更创新',
+'乌镇西栅内的民宿超贵，预算有限住景区门口，早上8点前步行进西栅'
+],luggage:[
+'身份证','舒适鞋(古镇石板路)','充电宝',
+'防晒霜+遮阳伞','薄外套(早晚凉)','雨伞(江南多雨)',
+'水杯'
+]},
+shaoxing:{name:'绍兴',sights:[
+{name:'鲁迅故里',duration:'2小时',price:'免费(需预约)',traffic:'地铁1号线鲁迅故里站',tip:'百草园+三味书屋+咸亨酒店，跟着课本游'},
+{name:'沈园',duration:'1.5小时',price:'旺季40元/淡季35元',traffic:'公交52路',tip:'陆游唐琬爱情故事，钗头凤碑'},
+{name:'兰亭',duration:'2小时',price:'70元',traffic:'公交303路',tip:'王羲之兰亭集序，曲水流觞'},
+{name:'东湖',duration:'2小时',price:'50元(乌篷船另收40)',traffic:'公交1路',tip:'采石形成的山水盆景，乌篷船必坐'},
+{name:'柯岩/鉴湖/鲁镇',duration:'全天',price:'联票130元',traffic:'公交805/177路',tip:'鲁迅笔下鲁镇，社戏+阿Q'},
+{name:'安昌古镇',duration:'2.5小时',price:'50元',traffic:'公交118/268路',tip:'腊月风情节，腊肠+酱鸭+扯白糖'},
+{name:'仓桥直街',duration:'2小时',price:'免费',traffic:'地铁1号线城市广场站',tip:'绍兴老街，原汁原味生活气息'},
+{name:'八字桥',duration:'1小时',price:'免费',traffic:'公交13/25路',tip:'中国最早的立交桥，历史街区'},
+{name:'大禹陵',duration:'2小时',price:'60元',traffic:'公交2路',tip:'大禹葬地，祭禹圣地'}
+],foods:[
+{name:'绍兴黄酒',desc:'古越龙山、会稽山，女儿红/花雕/状元红'},
+{name:'茴香豆',desc:'咸亨酒店，孔乙己同款，下酒好菜'},
+{name:'霉干菜扣肉',desc:'绍兴名菜，梅菜吸油肉香四溢'},
+{name:'臭豆腐',desc:'绍兴油炸臭豆腐，外酥内嫩，配辣酱'},
+{name:'绍兴醉鸡/醉虾',desc:'黄酒腌制，酒香浓郁'},
+{name:'奶油小攀',desc:'绍兴版蛋挞，甜食爱好者'}
+],areas:[
+{name:'鲁迅故里/仓桥直街',desc:'核心景区，步行可达'},
+{name:'柯桥区(柯岩)',desc:'近柯岩鉴湖鲁镇'},
+{name:'越城区(市中心)',desc:'交通便利，性价比高'},
+{name:'安昌镇',desc:'近安昌古镇，深度体验'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'鲁迅故里+沈园+兰亭+东湖建议买140元联票，分开买更贵',
+'东湖的乌篷船一定要坐！手划船穿过采石山洞，别有洞天，40元/人',
+'安昌古镇腊月(12月底)有腊月风情节，香肠挂满街，超有年味',
+'咸亨酒店就是体验气氛，味道一般还贵，去旁边的寻宝记绍兴菜',
+'黄酒棒冰、黄酒奶茶可以尝尝，酒精度不高，不会醉',
+'仓桥直街晚上灯笼亮起来超好看，比白天更有味道'
+],luggage:[
+'身份证','舒适鞋(石板路)','充电宝',
+'防晒霜+雨伞','薄外套','水杯',
+'防蚊液(水乡多蚊)'
+]},
+jinhua:{name:'金华',sights:[
+{name:'横店影视城',duration:'1-2天',price:'各景区联票350-550元',traffic:'义乌站/金华南站乘大巴1小时',tip:'中国好莱坞，秦王宫/明清宫苑/梦幻谷'},
+{name:'双龙洞',duration:'3小时',price:'90元',traffic:'公交游3路',tip:'叶圣陶笔下记金华的双龙洞，卧船进洞'},
+{name:'古子城',duration:'2小时',price:'免费',traffic:'公交54/301路',tip:'金华老城区，侍王府+八咏楼'},
+{name:'诸葛八卦村',duration:'2.5小时',price:'100元',traffic:'兰溪公交',tip:'诸葛亮后裔聚居地，八卦布局'},
+{name:'义乌国际商贸城',duration:'半天',price:'免费(需登记)',traffic:'义乌地铁1号线国际商贸城站',tip:'世界小商品之都，批发天堂'},
+{name:'武义牛头山',duration:'4小时',price:'110元',traffic:'武义县包车',tip:'江南华清池，牛头山森林公园'},
+{name:'永康方岩',duration:'3小时',price:'65元',traffic:'永康市公交',tip:'丹霞地貌，胡公祠香火旺盛'},
+{name:'东阳卢宅',duration:'1.5小时',price:'65元',traffic:'东阳市公交',tip:'北有故宫南有卢宅，明清木雕精品'}
+],foods:[
+{name:'金华火腿',desc:'金字/金字火腿，世界三大火腿之一'},
+{name:'金华酥饼',desc:'黄山歙县和金华酥饼齐名，梅干菜肉馅'},
+{name:'兰溪鸡子馃',desc:'兰溪小吃，鸡蛋肉馅薄饼'},
+{name:'永康肉麦饼',desc:'永康特色，厚实饱满，现烤喷香'},
+{name:'武义醋鸡',desc:'武义名菜，酸辣开胃下饭'},
+{name:'义乌红糖',desc:'义乌特产，古法熬制，女生最爱'}
+],areas:[
+{name:'金华市区',desc:'交通枢纽，近双龙洞、古子城'},
+{name:'东阳市(横店)',desc:'近横店，住2天玩转影城'},
+{name:'义乌市',desc:'购物天堂，小商品批发'},
+{name:'兰溪市',desc:'近诸葛八卦村，小吃众多'}
+],budget:{cheap:250,mid:500,comfort:1000},
+pitfalls:[
+'横店景区很大，建议买3景点+梦幻谷联票，梦幻谷晚上的"暴雨山洪"必看',
+'双龙洞卧船进洞超刺激，身高1.8米+的要低头，别撞头',
+'义乌商贸城很大！分五个区，要买东西提前查好分区，不然走断腿',
+'诸葛八卦村可以请讲解，不然看不懂八卦布局，讲解50元',
+'金华古子城晚上有夜市，保宁门旁边的烤包子超好吃',
+'武义牛头山的玻璃栈道是浙江最长的，恐高症慎入'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','雨伞','薄外套',
+'水杯'
+]},
+quzhou:{name:'衢州',sights:[
+{name:'江郎山',duration:'4小时',price:'旺季100元/淡季70元',traffic:'江山市大巴',tip:'世界自然遗产，三爿石丹霞奇峰'},
+{name:'廿八都古镇',duration:'2.5小时',price:'旺季75元/淡季65元',traffic:'江山市大巴1.5小时',tip:'枫溪锁钥，移民文化古镇，13种方言'},
+{name:'根宫佛国',duration:'3小时',price:'旺季180元/淡季150元',traffic:'开化县公交',tip:'根雕艺术博物馆，巨型根雕佛像震撼'},
+{name:'龙游石窟',duration:'2小时',price:'85元',traffic:'龙游县公交',tip:'世界第九大奇迹，地下石窟群谜团重重'},
+{name:'天脊龙门',duration:'3.5小时',price:'65元',traffic:'衢江区公交',tip:'峡谷瀑布，飞龙玻璃栈道刺激'},
+{name:'药王山',duration:'3小时',price:'65元',traffic:'衢江区公交',tip:'野生猕猴群，中药材种植基地'},
+{name:'衢州古城墙',duration:'1小时',price:'免费',traffic:'市区公交',tip:'水亭门历史街区，夜景灯光秀'},
+{name:'三衢石林',duration:'2.5小时',price:'80元',traffic:'常山县公交',tip:'喀斯特地貌，石头动物园'}
+],foods:[
+{name:'衢州鸭头',desc:'一粒志、国良鸭头，麻辣鲜香，三头一掌之首'},
+{name:'衢州烤饼',desc:'缙云烧饼改良版，梅干菜肉/葱肉，现烤好吃'},
+{name:'常山索面',desc:'常山县特产，长寿面，细如发丝'},
+{name:'开化清水鱼',desc:'开化名菜，高山泉水养殖，鲜嫩无腥'},
+{name:'龙游发糕',desc:'龙游特产，香甜软糯，过年必备'},
+{name:'江山白鹅',desc:'江山特产，白鹅肉质鲜美'}
+],areas:[
+{name:'衢州市区',desc:'近古城墙、水亭门'},
+{name:'江山市',desc:'近江郎山、廿八都古镇'},
+{name:'开化县',desc:'近根宫佛国、古田山'},
+{name:'龙游县',desc:'近龙游石窟、民居苑'}
+],budget:{cheap:230,mid:460,comfort:900},
+pitfalls:[
+'江郎山"郎峰天游"超陡！800级近乎垂直的台阶，老人小孩慎爬',
+'廿八都古镇保留了13种方言，很奇特，很多明清古建筑，拍照好看',
+'衢州鸭头真的很辣！微辣=外地的中辣，点微辣就够了',
+'龙游石窟很凉快，夏天去超舒服，但是里面很冷，带件薄外套',
+'根宫佛国虽然门票贵，但里面500罗汉根雕真的震撼，值回票价',
+'水亭门周六晚上有灯光秀，20:00开始，推荐观看'
+],luggage:[
+'身份证','舒适登山鞋','充电宝',
+'防晒霜+遮阳帽','薄外套(石窟凉)','雨伞',
+'水杯'
+]},
+taizhou:{name:'台州',sights:[
+{name:'神仙居',duration:'4小时',price:'旺季110元/淡季95元',traffic:'仙居县大巴',tip:'太白梦游处，烟霞第一城，如意桥超刺激'},
+{name:'天台山',duration:'2天',price:'国清寺免费+石梁飞瀑60元+华顶50元',traffic:'天台县大巴1.5小时',tip:'活佛济公故里，天台宗祖庭'},
+{name:'台州府城(临海)',duration:'3小时',price:'70元',traffic:'临海地铁1号线台州府城站',tip:'江南长城+紫阳古街，抗倭古城'},
+{name:'温岭石塘',duration:'2天',price:'各景点分开',traffic:'温岭市大巴1小时',tip:'东方巴黎圣母院，石头城堡+彩色小箬村'},
+{name:'国清寺',duration:'1.5小时',price:'免费',traffic:'天台县公交',tip:'千年古刹，隋代古刹，免费还送素斋'},
+{name:'蛇蟠岛',duration:'3小时',price:'100元',traffic:'三门县码头乘船',tip:'千洞之岛，海盗村+野人洞'},
+{name:'大陈岛',duration:'2天',price:'免费(船票+景点)',traffic:'椒江码头乘船1.5小时',tip:'东海明珠，甲午岩+垦荒精神'},
+{name:'琼台仙谷',duration:'3小时',price:'65元',traffic:'天台县公交',tip:'黄帝祭天处，峡谷奇峰，龙潭瀑布'}
+],foods:[
+{name:'台州姜汤面',desc:'姜汤+海鲜+米面，台州人坐月子吃的，驱寒'},
+{name:'嵌糕',desc:'年糕皮卷馅料，早餐标配，一个管饱'},
+{name:'麦虾',desc:'临海特色，面疙瘩配虾蛤，鲜美'},
+{name:'温岭泡虾',desc:'温岭小吃，面糊裹肉馅油炸，酥脆'},
+{name:'三门青蟹',desc:'三门县特产，青蟹肥美，中秋前后最鲜'},
+{name:'乌饭麻糍',desc:'台州特色，乌饭叶做的麻糍，甜糯'}
+],areas:[
+{name:'椒江区(台州市区)',desc:'近大陈岛码头，交通枢纽'},
+{name:'临海市',desc:'近台州府城+紫阳古街，美食天堂'},
+{name:'天台县',desc:'近天台山+国清寺+琼台仙谷'},
+{name:'仙居县/温岭市',desc:'近神仙居/石塘小箬村'}
+],budget:{cheap:250,mid:500,comfort:1000},
+pitfalls:[
+'神仙居门票含上下索道性价比高，如意桥很出片，走中间不要往下看',
+'天台山国清寺真免费！香花券也不用买，进去还送免费素斋，良心景区',
+'石塘小箬村拍照超美，彩色房子+大海，但节假日人很多',
+'台州府城"江南长城"比北方长城短，但紫阳古街美食巨多：蛋清羊尾、海苔饼',
+'大陈岛船票要提前买，风浪大时停航，上岛后租电动车环岛',
+'姜汤面很多人喝不惯，姜汤很辣，第一次可以点少姜'
+],luggage:[
+'身份证','舒适登山鞋','充电宝',
+'防晒霜+遮阳帽','防风外套(海边风大)','一次性雨衣',
+'换洗衣物+防蚊液'
+]},
+zhoushan:{name:'舟山',sights:[
+{name:'普陀山',duration:'1-2天',price:'旺季160元/淡季120元',traffic:'朱家尖蜈蚣峙码头乘船',tip:'观音菩萨道场，海天佛国，普济寺/法雨寺/慧济寺'},
+{name:'朱家尖',duration:'2天',price:'各景点收费(南沙70元)',traffic:'舟山跨海大桥直达',tip:'南沙沙雕+乌石塘+东沙看日出'},
+{name:'东极岛',duration:'2-3天',price:'免费(船票)',traffic:'沈家门半升洞码头乘船2小时',tip:'后会无期取景地，东福山看第一缕阳光'},
+{name:'嵊泗列岛',duration:'2-3天',price:'各岛免费(船票)',traffic:'沈家湾码头乘船',tip:'基湖沙滩+枸杞岛+花鸟岛，东方小希腊'},
+{name:'桃花岛',duration:'1天',price:'联票140元',traffic:'沈家门墩头码头乘船1小时',tip:'金庸笔下桃花岛，射雕影视城+安期峰'},
+{name:'岱山岛',duration:'2天',price:'免费',traffic:'三江码头乘船',tip:'蓬莱仙岛，鹿栏晴沙+磨心山'},
+{name:'秀山岛',duration:'1天',price:'免费(滑泥公园收费)',traffic:'三江码头乘船',tip:'秀山泥主题公园，泥巴大战'},
+{name:'定海古城',duration:'1.5小时',price:'免费',traffic:'市区公交',tip:'海上古城，明清古街+鸦片战争遗址'}
+],foods:[
+{name:'舟山海鲜面',desc:'一碗面5-6种海鲜，新鲜实惠'},
+{name:'舟山带鱼',desc:'舟山渔场特产，带鱼清蒸最鲜'},
+{name:'呛蟹/蟹糊',desc:'生腌梭子蟹，咸鲜下饭，舟山人最爱'},
+{name:'舟山鱼丸',desc:'纯手工鱼丸，Q弹有嚼劲，煮汤鲜美'},
+{name:'红膏呛蟹',desc:'满膏梭子蟹生腌，鲜美无敌'},
+{name:'岱山倭井潭硬糕',desc:'岱山特产，硬如石头越嚼越香'}
+],areas:[
+{name:'普陀区(沈家门/东港)',desc:'交通枢纽，近普陀山码头+海鲜排档'},
+{name:'朱家尖',desc:'近南沙+普陀山，民宿多'},
+{name:'定海区(老舟山)',desc:'近定海古城，性价比高'},
+{name:'普陀山上',desc:'住一晚看日出，普济寺附近方便'}
+],budget:{cheap:300,mid:600,comfort:1300},
+pitfalls:[
+'普陀山香火很旺，门票160+各小庙香花券5-6元，佛顶山索道单程40',
+'沈家门海鲜排档要选对！不要在码头第一排吃，贵还缺斤短两，去东港吃',
+'东极岛船票超难买！旺季提前3天在"舟山海星轮船"抢，岛上住宿条件一般',
+'朱家尖南沙沙雕节7-9月最好看，晚上灯光秀超美，东沙看日出免费',
+'嵊泗枸杞岛的"无人村"拍照超仙，但要爬半小时山，蚊子多',
+'吃海鲜绝对不要喝啤酒！容易痛风，配舟山杨梅酒或白酒'
+],luggage:[
+'身份证','舒适防水鞋','大容量充电宝',
+'防晒霜SPF50+','遮阳帽/墨镜','泳衣泳裤+沙滩鞋',
+'肠胃药(海鲜必备)','晕船药(必带！)','防水袋'
+]},
+hefei:{name:'合肥',sights:[
+{name:'三河古镇',duration:'3小时',price:'免费(各景点收费)',traffic:'合肥南站乘大巴1.5小时',tip:'江淮水乡，杨振宁故居+孙立人故居'},
+{name:'包公园',duration:'2小时',price:'50元(联票)',traffic:'地铁1号线包公园站',tip:'包拯墓+包公祠+清风阁，千年包公'},
+{name:'安徽博物院',duration:'2.5小时',price:'免费(需预约)',traffic:'地铁3号线省博物院站',tip:'楚大鼎+吴王光鉴+徽州古建筑'},
+{name:'逍遥津公园',duration:'1.5小时',price:'免费',traffic:'地铁2号线四牌楼站',tip:'三国古战场，张辽威震逍遥津'},
+{name:'李鸿章故居',duration:'1.5小时',price:'20元',traffic:'地铁1/2号线大东门站',tip:'李府半条街，晚清重臣故居'},
+{name:'巢湖',duration:'半天',price:'免费(各景点收费)',traffic:'公交H105路',tip:'中国五大淡水湖，姥山岛+环湖大道'},
+{name:'融创乐园',duration:'全天',price:'218元',traffic:'地铁1号线万达城站',tip:'徽州古韵主题乐园，白龙飞天过山车'},
+{name:'大蜀山',duration:'2.5小时',price:'免费',traffic:'地铁2号线大蜀山站',tip:'合肥城中山，登山俯瞰全城'}
+],foods:[
+{name:'庐州烤鸭',desc:'庐州烤鸭店，皮脆肉嫩，配鸭油烧饼'},
+{name:'李鸿章大杂烩',desc:'李鸿章发明，海参鲍鱼鱼皮一锅端'},
+{name:'臭鳜鱼',desc:'徽州名菜，闻着臭吃着香，徽菜代表'},
+{name:'卡旺卡奶茶',desc:'合肥本土奶茶，黑全套/杨枝甘露'},
+{name:'肥东老母鸡',desc:'老乡鸡，肥西老母鸡汤，合肥人的食堂'},
+{name:'詹记桃酥',desc:'合肥老字号桃酥，酥得掉渣，排队王'}
+],areas:[
+{name:'包河/庐阳(市中心)',desc:'地铁枢纽，近包公园/逍遥津'},
+{name:'政务区/天鹅湖',desc:'新城区，环境优美'},
+{name:'滨湖新区(融创)',desc:'近融创乐园+渡江战役纪念馆'},
+{name:'肥西县(三河)',desc:'近三河古镇，住一晚看夜景'}
+],budget:{cheap:250,mid:500,comfort:1000},
+pitfalls:[
+'三河古镇免费进！小景点套票50元没必要买，古镇外面逛逛+吃小吃就行',
+'安徽博物院周一闭馆，一定要提前预约，楚大鼎是镇馆之宝',
+'老乡鸡真的是合肥人的食堂！24小时营业，肥西老母鸡汤超鲜',
+'卡旺卡奶茶只有安徽有，黑全套+芒果爽是招牌，必喝',
+'包公园清风阁登上去可以看合肥老城区全景，值得一登',
+'詹记桃酥每次路过都排队，桃酥+肉松卷+女王卷都好吃'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜','雨伞','薄外套',
+'水杯'
+]},
+huangshan:{name:'黄山',sights:[
+{name:'黄山风景区',duration:'1-2天',price:'旺季190元/淡季150元',traffic:'黄山北站乘大巴1小时到汤口',tip:'五岳归来不看山，黄山归来不看岳'},
+{name:'宏村',duration:'2.5小时',price:'94元',traffic:'黟县公交',tip:'中国画里乡村，月沼+南湖+承志堂，写生圣地'},
+{name:'西递',duration:'2小时',price:'94元',traffic:'黟县公交',tip:'世界文化遗产，胡文光刺史牌楼+敬爱堂'},
+{name:'屯溪老街',duration:'2小时',price:'免费',traffic:'市区公交',tip:'活动着的清明上河图，徽州美食+特产'},
+{name:'呈坎',duration:'2小时',price:'102元',traffic:'徽州区公交',tip:'中华八卦村，爸爸去哪儿取景地'},
+{name:'歙县徽州古城',duration:'2.5小时',price:'100元',traffic:'歙县公交',tip:'徽州府衙+渔梁坝+许国石坊，徽商故里'},
+{name:'翡翠谷(情人谷)',duration:'2小时',price:'60元',traffic:'汤口镇打车',tip:'卧虎藏龙取景地，彩池群+爱心池'},
+{name:'齐云山',duration:'3小时',price:'旺季75元/淡季65元',traffic:'休宁县公交',tip:'道教四大名山，白岳仙关，丹霞地貌'}
+],foods:[
+{name:'臭鳜鱼',desc:'徽菜之王，徽州人家、老街第一楼'},
+{name:'毛豆腐',desc:'《舌尖上的中国》推荐，油煎沾辣椒酱'},
+{name:'黄山烧饼',desc:'蟹壳黄，梅干菜肉馅，酥脆喷香'},
+{name:'徽州刀板香',desc:'腊肉蒸制，咸香下饭，徽菜经典'},
+{name:'黄山炖鸽',desc:'黄山特色，滋补养生'},
+{name:'歙县毛豆腐',desc:'长毛的豆腐，徽州独有'}
+],areas:[
+{name:'黄山市(屯溪区)',desc:'交通枢纽，近屯溪老街、机场/高铁站'},
+{name:'汤口镇',desc:'黄山南大门，近黄山景区，民宿多'},
+{name:'黟县(宏村/西递)',desc:'近宏村西递，强烈推荐住宏村民宿一晚'},
+{name:'歙县(徽州古城)',desc:'近徽州古城+渔梁坝，徽州文化发源地'}
+],budget:{cheap:280,mid:560,comfort:1200},
+pitfalls:[
+'黄山门票+玉屏索道90+云谷索道80+景交38，旺季排队2小时+，建议后山云谷寺上，前山慈光阁下',
+'黄山"三奇五绝"：奇松、怪石、云海、温泉、冬雪，看云海要住山顶一晚',
+'宏村+西递买联票150元，两个都看值，但宏村比西递美很多，时间紧选宏村',
+'屯溪老街的汪一挑馄饨、胡兴堂烧饼都好吃，买特产去胡兴堂，不要买路边假古董',
+'西海大峡谷超级美！但是要5小时徒步，老人小孩建议坐西海小火车100元',
+'宏村清晨6点人最少，雾气弥漫的月沼拍照最美，住一晚值！'
+],luggage:[
+'身份证','登山鞋(防滑!)','大容量充电宝',
+'冲锋衣/厚外套(山顶低10度)','防晒霜+墨镜','一次性雨衣(黄山天气多变)',
+'2L水+高能零食(山上物价超贵)','手套(冬天爬山结冰)'
+]},
+chizhou:{name:'池州(九华山)',sights:[
+{name:'九华山',duration:'1-2天',price:'旺季160元/淡季140元',traffic:'池州站乘大巴1.5小时',tip:'地藏王菩萨道场，四大佛教名山之一'},
+{name:'肉身宝殿',duration:'1小时',price:'含在九华山门票',traffic:'九华街步行',tip:'金地藏肉身塔，九华山核心圣地'},
+{name:'化城寺',duration:'1小时',price:'含在门票',traffic:'九华街',tip:'九华山开山祖寺，历史最悠久'},
+{name:'天台峰',duration:'2.5小时',price:'索道单程85元',traffic:'九华街乘景区车',tip:'九华山最高峰，"不到天台等于没来"'},
+{name:'百岁宫',duration:'1.5小时',price:'索道上行55元',traffic:'九华街步行或索道',tip:'无瑕禅师肉身殿，五百罗汉堂，可俯瞰九华街全景'},
+{name:'小天台',duration:'40分钟',price:'免费',traffic:'九华街打车10元',tip:'九华山最佳观景台，看日落日出，全景超震撼'}
+],foods:[
+{name:'九华山素斋',desc:'寺庙素斋，聚龙大酒店/九华街素斋馆'},
+{name:'池州小粑',desc:'池州早餐标配，萝卜/豆角/粉丝馅，现煎好吃'},
+{name:'石台富硒米',desc:'石台县特产，富硒土壤种植，健康养生'},
+{name:'东至米饺',desc:'东至县特色，籼米粉做皮，蒸制软糯'},
+{name:'陵阳豆腐干',desc:'青阳县特产，五香味豆腐干'},
+{name:'九华山黄精',desc:'地藏黄精，滋补中药材，炖汤泡酒'}
+],areas:[
+{name:'九华街(九华山核心)',desc:'推荐住九华街，近各寺庙，方便朝拜'},
+{name:'池州市区(贵池)',desc:'交通枢纽，性价比高'},
+{name:'石台县',desc:'近牯牛降、富硒村，养生游'},
+{name:'青阳县',desc:'近九华山南门，住宿比山上便宜'}
+],budget:{cheap:260,mid:520,comfort:1050},
+pitfalls:[
+'九华山旺季(农历七月三十地藏王圣诞+小长假)人挤爆，房费翻3倍，提前1个月订',
+'九华山有很多"假和尚"拉你算命烧香，别理！真正出家人不会主动要钱',
+'上九华山分花台/天台/闵园/九华街景区，景区车50元通票，必买！',
+'天台峰索道上，然后徒步下山看风景最合理，"不上天台等于没来"',
+'池州小粑推荐：市区翠柏路菜市场门口的小摊，2元一个超好吃',
+'牯牛降是"西黄山"，景色不亚于黄山，人少多了，时间充裕可以去'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'冲锋衣(山区凉)','防晒霜+墨镜','雨伞(山区多雨)',
+'保温杯(喝热水)','零食'
+]},
+fuzhou:{name:'福州',sights:[
+{name:'三坊七巷',duration:'2.5小时',price:'免费(各景点收费)',traffic:'地铁1号线东街口站',tip:'里坊制度活化石，林则徐/沈葆桢/冰心故居'},
+{name:'鼓山',duration:'3小时',price:'免费(涌泉寺40元)',traffic:'公交7/29/58路到鼓山古道',tip:'福州标志，涌泉寺+喝水岩+摩崖石刻'},
+{name:'西湖公园',duration:'1.5小时',price:'免费',traffic:'地铁1号线屏山站',tip:'福州保存最完整的古典园林'},
+{name:'上下杭',duration:'2小时',price:'免费',traffic:'地铁1号线达道站',tip:'福州版外滩，百年商埠，历史风貌'},
+{name:'烟台山',duration:'2小时',price:'免费',traffic:'地铁1号线上藤站',tip:'万国建筑博览，领事馆旧址群'},
+{name:'平潭岛',duration:'2天',price:'免费(各景点收费)',traffic:'福州南站乘大巴1.5小时',tip:'蓝眼泪！最美海岛，68海里景区'},
+{name:'西禅寺',duration:'1.5小时',price:'20元',traffic:'公交14/27/91路',tip:'福州五大禅林之一，报恩塔'},
+{name:'青云山',duration:'4小时',price:'旺季35元/淡季25元',traffic:'永泰县大巴1小时',tip:'瀑布峡谷，青龙瀑布+白马峡谷'}
+],foods:[
+{name:'佛跳墙',desc:'聚春园，闽菜之王，鲍参翅肚八珍煨制'},
+{name:'鱼丸',desc:'永和鱼丸、同利肉燕，鱼糜包肉馅，Q弹汤鲜'},
+{name:'肉燕',desc:'同利肉燕，肉包肉，燕皮是猪肉捶打做的'},
+{name:'锅边糊',desc:'早餐标配，米浆糊锅+虾米+花蛤，配虾酥'},
+{name:'荔枝肉',desc:'闽菜经典，糖醋猪肉，形似荔枝'},
+{name:'花生汤',desc:'黄则和花生汤，花生熬得软烂，甜而不腻'}
+],areas:[
+{name:'东街口/三坊七巷',desc:'市中心地铁枢纽，近核心景点'},
+{name:'台江区(上下杭/中亭街)',desc:'新老结合，美食多'},
+{name:'仓山区(烟台山)',desc:'文艺打卡，老洋房多'},
+{name:'平潭县',desc:'追蓝眼泪，海岛度假，强烈建议住2晚'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'三坊七巷主街商业化严重，一定要钻进旁边的"衣锦坊/文儒坊/光禄坊"看真正的老福州',
+'平潭蓝眼泪只有4-8月才有！一般在凌晨1-4点，提前关注"平潭蓝眼泪预报"',
+'鱼丸和肉燕是两个东西！肉燕是"肉包肉"，燕皮是猪肉捶出来的，更贵更好吃',
+'锅边糊只有早上才有！推荐：达道武仔牛肉店旁的老摊，3元一碗超便宜',
+'烟台山不要只逛主街！往梅坞路、乐群路走，老洋房+咖啡店拍照超美',
+'聚春园佛跳墙398元一盅，预算有限可以吃"迷你佛跳墙"或去其他闽菜馆'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(福州多雨又称"雨都")','薄外套',
+'水杯'
+]},
+xiamen:{name:'厦门',sights:[
+{name:'鼓浪屿',duration:'1天',price:'35元(船票往返)+各景点收费',traffic:'邮轮中心码头乘船20分钟',tip:'世界文化遗产，万国建筑+日光岩'},
+{name:'环岛路',duration:'半天',price:'免费',traffic:'公交29/47/751路',tip:'最美马拉松赛道，曾厝垵→黄厝海滩骑行'},
+{name:'厦门大学',duration:'1.5小时',price:'免费(需预约)',traffic:'公交1/20/45路',tip:'中国最美大学，芙蓉隧道+白城沙滩'},
+{name:'南普陀寺',duration:'1.5小时',price:'免费',traffic:'公交1/20/45路',tip:'闽南佛教圣地，素饼超好吃，普照楼素斋'},
+{name:'沙坡尾',duration:'2小时',price:'免费',traffic:'公交71/86路',tip:'老渔港+艺术西区，文艺青年聚集地'},
+{name:'曾厝垵',duration:'1.5小时',price:'免费',traffic:'公交29/47/751路',tip:'最文艺渔村，小吃+民宿，人多嘈杂'},
+{name:'中山路步行街',duration:'2小时',price:'免费',traffic:'公交1/10/11路',tip:'骑楼老街，厦门老牌商业街'},
+{name:'集美学村',duration:'2.5小时',price:'免费',traffic:'地铁1号线集美学村站',tip:'陈嘉庚故里，嘉庚建筑+鳌园'},
+{name:'云水谣土楼',duration:'全天',price:'90元',traffic:'厦门北站乘动车到南靖转大巴2小时',tip:'世界文化遗产，和贵楼+怀远楼+百年榕树'},
+{name:'胡里山炮台',duration:'1小时',price:'25元',traffic:'公交22/48/86路',tip:'清代海防炮台，克虏伯大炮'}
+],foods:[
+{name:'沙茶面',desc:'乌糖沙茶面、四里沙茶面，花生酱沙茶汤+海鲜配料'},
+{name:'土笋冻',desc:'西门土笋冻、海沧佳味馆，沙虫熬制冻，配芥末酱油'},
+{name:'姜母鸭',desc:'好清香、灌顶姜母鸭，砂锅慢炖，姜香浓郁'},
+{name:'海蛎煎',desc:'莲欢海蛎煎，海蛎+番薯粉，蘸甜辣酱'},
+{name:'花生汤',desc:'黄则和花生汤（中山路），软烂香甜'},
+{name:'面线糊',desc:'西街老记面线糊，早餐标配，醋肉+大肠配料'}
+],areas:[
+{name:'思明区(中山路/厦大)',desc:'市中心，近主要景点，交通便利'},
+{name:'曾厝垵/黄厝',desc:'近环岛路海滩，民宿多但较吵'},
+{name:'鼓浪屿岛上',desc:'强烈建议住一晚，清晨无人的鼓浪屿超美'},
+{name:'集美区',desc:'近集美学村，性价比高，安静'}
+],budget:{cheap:320,mid:650,comfort:1350},
+pitfalls:[
+'鼓浪屿船票一定要提前在"厦门轮渡"公众号买！旺季当天根本买不到，35元往返是普通舱',
+'鼓浪屿不要买联票90元！日光岩50元看全景最值，其他菽庄花园30没必要，皓月园25看郑成功',
+'厦大一定提前3天在公众号"厦门大学访客预约系统"预约，没预约白跑，周一闭馆',
+'沙茶面是"拌面"+"汤"，推荐：乌糖沙茶面（汤浓海鲜多）、四里沙茶面（本地人常去）',
+'曾厝垵小吃贵还不正宗！真正好吃的都在老城区：中山路巷子里、八市海鲜市场',
+'土楼选南靖云水谣还是永定？云水谣更文艺拍照好，永定土楼王更壮观，一日游跟团最方便'
+],luggage:[
+'身份证(预约厦大+船票)','舒适鞋','大容量充电宝',
+'防晒霜+遮阳帽(厦门暴晒)','泳衣泳裤+沙滩鞋','雨伞(多雨)',
+'肠胃药(海鲜)','薄外套(海风大)'
+]},
+quanzhou:{name:'泉州',sights:[
+{name:'开元寺',duration:'2小时',price:'免费',traffic:'公交2/6/26路',tip:'千年古刹，东西塔+桑莲法界，泉州地标'},
+{name:'西街',duration:'2.5小时',price:'免费',traffic:'公交2/6/40路',tip:'泉州最古老街道，开元寺+钟楼+小西埕网红墙'},
+{name:'蟳埔村',duration:'2小时',price:'免费',traffic:'公交1路/K1路',tip:'簪花围！海蛎壳建的蚵壳厝，赵丽颖同款打卡'},
+{name:'清净寺',duration:'1小时',price:'3元',traffic:'公交3/4/6路',tip:'中国现存最古老伊斯兰教寺，阿拉伯风格'},
+{name:'清源山',duration:'3.5小时',price:'70元',traffic:'公交15/30/601路',tip:'老君岩道教鼻祖造像，老子天下第一'},
+{name:'崇武古城',duration:'3小时',price:'45元',traffic:'惠安县大巴1小时',tip:'明代石头城，惠安女+海边石头城墙'},
+{name:'承天寺',duration:'1小时',price:'免费',traffic:'公交10/21/25路',tip:'泉州最幽静寺庙，城市山林'},
+{name:'洛阳桥',duration:'1.5小时',price:'免费',traffic:'公交19/K502路',tip:'中国四大古桥，宋代跨海石桥，牡蛎固基奇迹'}
+],foods:[
+{name:'面线糊',desc:'水门国仔面线糊，醋肉+大肠+油条，泉州人早餐'},
+{name:'土笋冻',desc:'安海土笋冻，西门、五里街，配蒜蓉醋'},
+{name:'姜母鸭',desc:'斯丹姜母鸭、好成财牛排馆，砂锅慢炖'},
+{name:'海蛎煎',desc:'群众路老字号海蛎煎，海蛎肥美'},
+{name:'牛肉羹',desc:'好成财牛排馆、东兴牛肉店，牛肉软嫩汤鲜'},
+{name:'润饼菜',desc:'亚佛润饼皮，清明吃润饼，各种素菜卷起来'}
+],areas:[
+{name:'鲤城区(西街/开元寺)',desc:'老城区核心，景点集中，步行可达'},
+{name:'丰泽区(市中心)',desc:'交通枢纽，酒店多'},
+{name:'丰泽区(东海)',desc:'新城区，蟳埔村方向'},
+{name:'惠安县(崇武)',desc:'近崇武古城、惠安女'}
+],budget:{cheap:260,mid:520,comfort:1000},
+pitfalls:[
+'泉州是"世界宗教博物馆"，开元寺(佛)+清净寺(伊)+承天寺(佛)+老君岩(道)都可以一天看完',
+'蟳埔村簪花围体验40元左右！含头饰+服装，拍一组照片超美，进村随便找一家都靠谱',
+'西街钟楼往开元寺方向走，过了钟楼的才是真正老西街，小西埕那面墙只是打卡点',
+'清源山老君岩是必看！但只逛老君岩2小时足够，清源山主峰不用爬',
+'面线糊加油条、醋肉、大肠是标配！24小时营业的店很多，夜宵也能吃',
+'崇武古城里还有居民生活，不是纯景区，古城墙+海滩+惠安女表演都可以看'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(多雨)','薄外套',
+'水杯'
+]},
+nanping:{name:'南平(武夷山)',sights:[
+{name:'武夷山(主景区)',duration:'2-3天',price:'旺季225元(联票+观光车)/淡季195元',traffic:'武夷山北站乘公交7路',tip:'世界双遗产，碧水丹山，奇秀甲东南'},
+{name:'九曲溪竹筏漂流',duration:'2小时',price:'130元',traffic:'景区观光车到竹筏码头',tip:'武夷山精华，竹筏漂九曲，人在画中游'},
+{name:'天游峰',duration:'2.5小时',price:'含在联票',traffic:'景区观光车',tip:'武夷山第一胜地，登天游观九曲，云海超美'},
+{name:'虎啸岩',duration:'2小时',price:'含在联票',traffic:'景区观光车',tip:'虎啸八景，天成禅院+不浪舟'},
+{name:'一线天',duration:'1小时',price:'含在联票',traffic:'景区观光车',tip:'全国最窄一线天，胖子慎入！最窄30cm'},
+{name:'印象大红袍',duration:'70分钟',price:'298-888元',traffic:'茶博园旁边',tip:'张艺谋印象系列，旋转看台，大王玉女故事'},
+{name:'下梅古民居',duration:'2小时',price:'60元',traffic:'武夷山市区打车',tip:'万里茶路起点，晋商常氏茶庄'},
+{name:'五夫镇',duration:'2.5小时',price:'75元',traffic:'武夷山市大巴1小时',tip:'朱熹故里，朱子理学发源地'}
+],foods:[
+{name:'熏鹅',desc:'岚谷熏鹅，武夷山特产，烟熏香辣，下酒好菜'},
+{name:'大红袍茶叶蛋',desc:'景区到处都有，5元一个，用大红袍煮的'},
+{name:'朱子孝母饼',desc:'五夫镇特产，甜酥馅饼，朱熹孝心典故'},
+{name:'武夷山笋干',desc:'冬笋干，炖鸡炖肉超香，带点回去'},
+{name:'猫爪菇',desc:'武夷山特产菌菇，形状像猫爪，炒肉鲜美'},
+{name:'紫溪粉',desc:'武夷山当地米粉，紫溪粉干，汤粉炒粉都好吃'}
+],areas:[
+{name:'三姑度假区',desc:'近武夷山景区南大门，酒店餐厅多，最方便'},
+{name:'武夷山市区',desc:'性价比高，本地美食多'},
+{name:'南源岭村',desc:'近景区南门，民宿多，安静'},
+{name:'星村镇(竹筏码头)',desc:'近九曲溪竹筏，适合深度游'}
+],budget:{cheap:280,mid:560,comfort:1200},
+pitfalls:[
+'武夷山门票+观光车+九曲溪竹筏是分开买的！竹筏130元最值得，提前3天预约，买不到就白来',
+'九曲溪竹筏一定要坐！2小时漂流超舒服，艄公会讲解+讲笑话，记得给20元小费讲得更卖力',
+'天游峰要爬848级台阶！老人小孩量力而行，半山亭拍九曲全景也很美',
+'印象大红袍演出真的超震撼！旋转看台+山水实景，298的票就够，不用买贵的',
+'买大红袍茶叶别在景区买！去市区的"茶都"，正宗大红袍至少500元/斤以上，便宜的都是假的',
+'一线天真的很窄！最窄只有30cm，胖子真的会卡，过不去可以走旁边的"二线天"'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'防晒霜+遮阳帽','一次性雨衣(山区多雨)','薄外套(山区凉)',
+'水杯+零食','防水袋(竹筏用)'
+]},
+longyan:{name:'龙岩(永定土楼)',sights:[
+{name:'永定土楼(洪坑+高北)',duration:'1天',price:'洪坑90元+高北50元',traffic:'永定县大巴',tip:'世界文化遗产，振成楼+承启楼，客家土楼王子/王'},
+{name:'田螺坑土楼群',duration:'半天',price:'115元(含云水谣)',traffic:'南靖县大巴',tip:'四菜一汤土楼群，俯瞰超震撼'},
+{name:'云水谣古镇',duration:'3小时',price:'90元(联票含田螺坑)',traffic:'南靖县大巴',tip:'百年榕树+古道+土楼，电影取景地'},
+{name:'永定土楼王子(振成楼)',duration:'1.5小时',price:'含在洪坑门票',traffic:'湖坑镇洪坑村',tip:'土楼王子，八卦布局，中西合璧'},
+{name:'承启楼',duration:'1小时',price:'含在高北门票',traffic:'高头镇高北村',tip:'土楼王，400户人家同住，规模最大'},
+{name:'冠豸山',duration:'3.5小时',price:'联票115元',traffic:'连城县公交',tip:'丹霞地貌，客家神山，生命之根'},
+{name:'古田会议会址',duration:'1.5小时',price:'免费',traffic:'上杭县古田镇',tip:'红色圣地，古田会议永放光芒'},
+{name:'龙硿洞',duration:'2小时',price:'55元',traffic:'新罗区公交',tip:'华东第一溶洞，喀斯特奇观'}
+],foods:[
+{name:'客家菜(盐酒鸡/梅菜扣肉)',desc:'客家特色，咸香下饭，永定/长汀菜馆'},
+{name:'永定芋子包',desc:'永定特产，芋皮包肉馅，Q弹鲜香'},
+{name:'簸箕粄',desc:'龙岩小吃，米浆蒸制卷菜，类似肠粉'},
+{name:'长汀豆腐干',desc:'长汀特产，八大干之首，五香麻辣口味'},
+{name:'上杭萝卜干',desc:'闽西八大干，香脆下饭'},
+{name:'客家娘酒',desc:'客家米酒，香甜醇厚，女生最爱'}
+],areas:[
+{name:'龙岩市区(新罗区)',desc:'交通枢纽，近龙硿洞'},
+{name:'永定区(湖坑镇)',desc:'近洪坑土楼群、振成楼'},
+{name:'南靖县(书洋镇)',desc:'近田螺坑、云水谣，推荐住土楼民宿一晚'},
+{name:'连城县',desc:'近冠豸山，客家美食多'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'永定土楼和南靖土楼选一个就行！永定是"土楼王"规模大，南靖田螺坑"四菜一汤"拍照好，云水谣更文艺',
+'振成楼可以上楼！承启楼现在不让上，只能在一楼看，别被骗"上楼费"',
+'田螺坑一定要去上观景台俯瞰！"四菜一汤"只有从上往下拍才像，门票含观景台',
+'住土楼民宿体验很特别！但老土楼没有独立卫生间，预算充足选新修的精品民宿',
+'客家菜偏咸偏油，芋子包、簸箕粄都是必吃的，客家娘酒后劲大，别贪杯',
+'冠豸山的"生命之根""生命之门"是丹霞地貌奇观，很有特色，推荐一去'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(多雨)','薄外套(山区凉)',
+'水杯'
+]},
+nanchang:{name:'南昌',sights:[
+{name:'滕王阁',duration:'2小时',price:'旺季50元/淡季45元',traffic:'地铁1号线滕王阁站',tip:'落霞与孤鹜齐飞，秋水共长天一色，江南三大名楼'},
+{name:'八一广场/八一起义纪念馆',duration:'2.5小时',price:'免费(需预约)',traffic:'地铁1/2号线八一广场站',tip:'军旗升起的地方，英雄城红色记忆'},
+{name:'万寿宫历史街区',duration:'2小时',price:'免费',traffic:'地铁1号线万寿宫站',tip:'南昌版宽窄巷子，美食+潮玩+非遗'},
+{name:'绳金塔',duration:'1.5小时',price:'免费',traffic:'地铁3/4号线绳金塔站',tip:'南昌千年古塔，绳金塔美食街'},
+{name:'鄱阳湖(南矶山)',duration:'半天',price:'免费',traffic:'新建区包车1小时',tip:'中国最大淡水湖，候鸟天堂(10-3月)'},
+{name:'秋水广场',duration:'1.5小时',price:'免费',traffic:'地铁1号线秋水广场站',tip:'亚洲最大音乐喷泉群，20:00开始，旁边南昌之星摩天轮'},
+{name:'梅岭',duration:'半天',price:'各景区20-40元',traffic:'市区坐112路/160路1小时',tip:'南昌后花园，狮子峰看竹海+漂流，避暑好去处'}
+],foods:[
+{name:'瓦罐汤+拌粉',desc:'南昌人早餐标配，民间饭庄、绳金塔瓦罐汤'},
+{name:'南昌炒粉',desc:'鲜辣够味，夜宵摊必备'},
+{name:'藜蒿炒腊肉',desc:'鄱阳湖特产藜蒿，南昌人春天的命'},
+{name:'白糖糕',desc:'南昌传统甜点，外酥里糯甜而不腻'},
+{name:'煌上煌烤卤',desc:'南昌本土卤味，酱鸭/鸭翅，辣的过瘾'},
+{name:'米粉肉',desc:'南昌家常菜，米粉裹肉蒸制，香糯'}
+],areas:[
+{name:'红谷滩新区',desc:'新城区，秋水广场+摩天轮，夜景好'},
+{name:'东湖区(滕王阁/八一)',desc:'市中心，近核心景点'},
+{name:'西湖区(万寿宫/绳金塔)',desc:'美食聚集地，老城区'},
+{name:'西客站(高铁)',desc:'交通便利，性价比高'}
+],budget:{cheap:250,mid:500,comfort:1000},
+pitfalls:[
+'滕王阁一定要背《滕王阁序》！背得出免门票，真的检查全文背诵',
+'秋水广场音乐喷泉20:00开始，号称亚洲最大，旁边的南昌之星摩天轮也值得坐',
+'瓦罐汤+拌粉是标配！推荐：珠宝街的老南昌拌粉+矮子瓦罐汤',
+'万寿宫美食街比绳金塔更热闹，里面的糊羹、藕片、油炸小吃都好吃',
+'鄱阳湖候鸟只有10月到次年3月有！其他季节只能看湖景，南矶山要包车去',
+'南昌菜真的很辣！微微辣就够了，"不辣"的菜可能也辣，提前说清楚'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(南昌多雨)','薄外套(空调)',
+'水杯+肠胃药(吃辣)'
+]},
+jiujiang:{name:'九江(庐山)',sights:[
+{name:'庐山',duration:'2天',price:'旺季160元/淡季135元',traffic:'九江站乘大巴1小时到牯岭镇',tip:'世界文化遗产，不识庐山真面目，只缘身在此山中'},
+{name:'三叠泉',duration:'2.5小时',price:'64元(含观光车)',traffic:'庐山景区车',tip:'不到三叠泉不算庐山客，三级瀑布壮观'},
+{name:'五老峰',duration:'2.5小时',price:'含在庐山门票',traffic:'庐山景区车',tip:'五座山峰形似五位老人，云海日出美'},
+{name:'美庐别墅',duration:'1小时',price:'25元',traffic:'牯岭镇步行',tip:'蒋介石+毛泽东都住过，国共历史见证'},
+{name:'含鄱口',duration:'1.5小时',price:'含在门票',traffic:'庐山景区车',tip:'含鄱阳湖的豁口，看云海日出最佳'},
+{name:'浔阳楼',duration:'1小时',price:'20元',traffic:'市区公交',tip:'宋江题反诗之地，锁江楼琵琶亭'},
+{name:'烟水亭',duration:'1小时',price:'免费',traffic:'市区公交',tip:'周瑜点将台，甘棠湖畔'},
+{name:'鄱阳湖(鞋山/落星墩)',duration:'2小时',price:'免费',traffic:'湖口县/庐山市',tip:'鄱阳湖奇特岛屿，枯水期步行可达'}
+],foods:[
+{name:'庐山石鸡',desc:'庐山石蛙，爆炒鲜嫩，庐山三石之一'},
+{name:'庐山石耳',desc:'岩壁上的地衣，炖鸡滋阴，庐山三石'},
+{name:'庐山石鱼',desc:'庐山特产小鱼，爆蛋好吃，庐山三石'},
+{name:'九江茶饼',desc:'桂花茶饼，酥脆香甜，庐山特产'},
+{name:'庐山云雾茶',desc:'中国十大名茶，香醇回甘，带两斤回去'},
+{name:'修水哨子',desc:'九江修水特产，芋头/红薯皮包肉馅'}
+],areas:[
+{name:'庐山牯岭镇',desc:'强烈推荐住山上！早上看云海，不用天天上下山'},
+{name:'九江市区',desc:'交通枢纽，近浔阳楼、烟水亭'},
+{name:'庐山市(星子)',desc:'近庐山南大门+温泉，冬季泡汤首选'},
+{name:'湖口县',desc:'近石钟山、鞋山，看江湖两色'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'庐山门票160元+景区车90元，山上牯岭镇是真正的"云中之城"，住两晚最舒服',
+'三叠泉在山下！要下3300级台阶再爬上来，体力不好可坐索道+缆车',
+'节假日上庐山的盘山公路巨堵，建议北门上山，或坐索道上山(80元)',
+'庐山云雾茶清明前最好，别在景区买，去九江市里的茶店买更靠谱',
+'石鸡不是鸡！是石蛙，肉质像牛蛙，爆炒石鸡超好吃，价格小贵',
+'含鄱口看日出要4点起！云海季节是春夏季，秋天看红叶，冬天看雪景'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'冲锋衣/厚外套(山上低10度)','防晒霜+墨镜','一次性雨衣(庐山多云雨)',
+'保温杯+零食'
+]},
+jingdezhen:{name:'景德镇',sights:[
+{name:'古窑民俗博览区',duration:'2.5小时',price:'95元',traffic:'公交1/16路',tip:'千年瓷都，手工制瓷表演+清代镇窑'},
+{name:'陶溪川',duration:'2.5小时',price:'免费',traffic:'公交1/15/28路',tip:'网红陶瓷创意集市，周五周六夜市超热闹'},
+{name:'御窑厂博物馆',duration:'2小时',price:'60元',traffic:'公交23/28路',tip:'皇家御窑，龙珠阁+地下考古遗址'},
+{name:'瑶里古镇',duration:'3小时',price:'150元(联票)',traffic:'汽车东站乘大巴1.5小时',tip:'瓷茶古镇，汪湖生态+绕南古窑'},
+{name:'中国陶瓷博物馆',duration:'2小时',price:'免费(需预约)',traffic:'公交901/905路',tip:'陶瓷通史，历代官窑民窑精品'},
+{name:'三宝国际瓷谷',duration:'半天',price:'免费',traffic:'公交15路',tip:'手工作坊聚集地，陶瓷体验+艺术民宿'},
+{name:'雕塑瓷厂',duration:'1.5小时',price:'免费',traffic:'公交103/123路',tip:'乐天陶社周末集市，创意陶瓷'},
+{name:'浮梁古县衙',duration:'2小时',price:'60元',traffic:'浮梁县公交',tip:'江南第一衙，五品县衙+红塔'}
+],foods:[
+{name:'景德镇冷粉',desc:'早餐标配，粗粉条拌酱料，配肉饼汤'},
+{name:'饺子粑',desc:'景德镇特色，米粉皮包馅，咸甜都有'},
+{name:'瓷泥煨鸡',desc:'用瓷泥包裹烤制，鸡香肉嫩，创意菜'},
+{name:'碱水粑',desc:'景德镇特产，碱水炒/煮，Q弹有嚼劲'},
+{name:'苦槠豆腐',desc:'瑶里特产，苦槠子做的豆腐，清凉'},
+{name:'油条包麻糍',desc:'早餐小吃，油条裹麻糍，一咸一甜'}
+],areas:[
+{name:'珠山区(市中心)',desc:'近御窑厂、陶溪川，交通便利'},
+{name:'昌江区(古窑)',desc:'近古窑、陶瓷博物馆'},
+{name:'浮梁县(瑶里)',desc:'近瑶里古镇+浮梁古县衙'},
+{name:'三宝村',desc:'陶艺体验+民宿，文艺青年必住'}
+],budget:{cheap:250,mid:500,comfort:1000},
+pitfalls:[
+'陶溪川周五周六晚上18:00有创意集市！摆摊的都是陶瓷学院学生，能淘到好货',
+'三宝瓷谷可以做陶瓷体验！拉坯+彩绘+烧制100-200元，成品能寄回家',
+'古窑的手工制瓷表演有时间点：拉坯10:00/14:00，镇窑烧窑点火仪式也有',
+'瑶里很远(1.5小时车程)，时间紧就别去，市内逛陶溪川+三宝就够了',
+'买瓷器别买景区的"大师款"！陶溪川/雕塑瓷厂的创意陶瓷性价比高，几十块能买好杯',
+'景德镇冷粉推荐：毛仔小吃、樊氏牛骨粉，又辣又香'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞','薄外套',
+'水杯+防蚊液'
+]},
+shangrao:{name:'上饶(婺源)',sights:[
+{name:'婺源',duration:'2-3天',price:'210元(通票5天有效)',traffic:'婺源站乘公交/拼车',tip:'中国最美乡村，春油菜秋红枫，白墙黛瓦'},
+{name:'篁岭',duration:'半天',price:'145元(含索道)',traffic:'婺源汽车北站乘大巴1小时',tip:'晒秋奇观，挂在山崖上的村落，必去'},
+{name:'江岭',duration:'2小时',price:'含在通票',traffic:'婺源大巴',tip:'万亩梯田油菜花海，婺源油菜核心区'},
+{name:'李坑',duration:'1.5小时',price:'含在通票',traffic:'婺源公交',tip:'小桥流水人家，徽派古村'},
+{name:'三清山',duration:'1-2天',price:'旺季120元/淡季110元(索道125)',traffic:'玉山南站乘大巴1小时',tip:'西太平洋边缘最美花岗岩，巨蟒出山震撼'},
+{name:'龟峰',duration:'3小时',price:'90元(含观光车)',traffic:'弋阳县大巴',tip:'无山不龟无石不龟，世界自然遗产'},
+{name:'望仙谷',duration:'1天',price:'120元',traffic:'上饶站乘大巴2小时',tip:'仙侠世界网红悬崖民宿，夜景超仙'},
+{name:'灵山',duration:'3.5小时',price:'95元(含索道上行)',traffic:'上饶县公交',tip:'睡美人山体，灵山左溪玻璃栈道'}
+],foods:[
+{name:'婺源汽糕',desc:'婺源早餐，米浆蒸制，软绵配菜'},
+{name:'粉蒸肉',desc:'婺源家常菜，米粉裹肉蒸，荷叶粉蒸最香'},
+{name:'婺源酒糟鱼',desc:'米酒腌制草鱼，咸香下饭'},
+{name:'上饶鸡腿',desc:'上饶特产，火车站排队买，现烤香辣'},
+{name:'铅山烫粉',desc:'铅山县特色，米粉烫熟加汤，早餐标配'},
+{name:'弋阳年糕',desc:'弋阳县特产，大禾米年糕，Q弹不粘牙'}
+],areas:[
+{name:'婺源县城(紫阳镇)',desc:'交通枢纽，各景点发车地'},
+{name:'篁岭景区内',desc:'强烈推荐住篁岭晒秋美宿，清晨无人的晒秋绝美'},
+{name:'玉山县(三清山)',desc:'近三清山南门，住1-2晚'},
+{name:'上饶市区',desc:'近望仙谷+灵山，交通枢纽'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'婺源通票210元含12个景点5天有效！但篁岭单独收费145元，篁岭才是婺源精华',
+'篁岭一定要住一晚！晒秋+夜景+晨雾，一日游赶时间体验差，民宿虽贵但值',
+'油菜花3月中-4月初开，红枫11月中-12月初红，其他季节景色一般',
+'三清山金沙索道上，巨蟒出山、东方女神、西海岸高空栈道最精彩，住山顶看日出',
+'望仙谷虽然是人造景区，但夜景真的超仙！悬崖民宿+灯光秀，拍照值回票价',
+'婺源景点很分散，建议包车(300元/天)，公交间隔很久浪费时间'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'防晒霜+遮阳帽','薄外套(山区凉)','雨伞(山区多雨)',
+'水杯+零食','相机(拍照圣地)'
+]},
+jian:{name:'吉安(井冈山)',sights:[
+{name:'井冈山',duration:'2天',price:'165元(含观光车)',traffic:'吉安站/井冈山站乘大巴1.5小时',tip:'中国革命摇篮，五指峰+黄洋界+茨坪'},
+{name:'黄洋界',duration:'1小时',price:'含在联票',traffic:'景区观光车',tip:'黄洋界上炮声隆，敌军围困万千重'},
+{name:'茨坪革命旧址群',duration:'2小时',price:'含在联票',traffic:'茨坪步行',tip:'毛泽东旧居+井冈山革命博物馆'},
+{name:'五指峰',duration:'2小时',price:'含在联票',traffic:'景区观光车',tip:'百元大钞背面图案，井冈山主峰'},
+{name:'笔架山(杜鹃山)',duration:'2.5小时',price:'索道162元另收',traffic:'景区观光车',tip:'十里杜鹃长廊，4-5月杜鹃花开'},
+{name:'龙潭瀑布群',duration:'2小时',price:'含在联票',traffic:'景区观光车',tip:'五潭十八瀑，碧潭如玉'},
+{name:'钓源古村',duration:'2小时',price:'40元',traffic:'吉州区公交',tip:'欧阳修后裔聚居地，千年古樟'},
+{name:'渼陂古村',duration:'2小时',price:'60元',traffic:'青原区公交',tip:'庐陵文化古村，《闪闪的红星》取景地'}
+],foods:[
+{name:'井冈山红米饭南瓜汤',desc:'红色经典，粗粮健康，忆苦思甜'},
+{name:'井冈烟笋炒肉',desc:'井冈山烟笋，烟熏味浓，炒肉超香'},
+{name:'万安鱼头',desc:'万安县特产，万安水库鱼头，炖奶白汤'},
+{name:'吉安炒粉',desc:'吉安人的乡愁，夜宵必备，辣的过瘾'},
+{name:'泰和乌鸡',desc:'泰和县特产，白凤乌鸡，滋补炖汤'},
+{name:'永丰霉鱼',desc:'永丰县特产，辣椒米粉腌鱼，咸辣下饭'}
+],areas:[
+{name:'茨坪镇(井冈山核心)',desc:'景区中心，住宿餐厅集中，强烈推荐住这里'},
+{name:'吉安市区',desc:'交通枢纽，近钓源、渼陂古村'},
+{name:'井冈山市(新城区)',desc:'性价比高，近井冈山火车站'},
+{name:'泰和县',desc:'近武山，乌鸡发源地'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'井冈山景区很大！观光车90元通票必买，各景点之间很远，开车不能进',
+'井冈山最佳旅游季节4-10月，4月杜鹃花开，10月秋色美，冬天冷但有雪景',
+'黄洋界要听讲解！不然就是一个山头，了解历史才有意义',
+'红米饭南瓜汤真的很粗粝，偶尔体验可以，连续吃受不了',
+'笔架山只有杜鹃花开时(4-5月)值得上，其他季节没必要坐162的索道',
+'井冈烟笋真的超好吃！买一些真空包装的带回家，炒肉炒腊肉一绝'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'防晒霜+遮阳帽','薄外套(山区凉)','雨伞(山区多雨)',
+'保温杯+零食'
+]},
+ganzhou:{name:'赣州',sights:[
+{name:'郁孤台/宋城墙',duration:'2小时',price:'免费',traffic:'市区公交',tip:'辛弃疾菩萨蛮书江西造口壁，宋代城墙'},
+{name:'通天岩',duration:'2.5小时',price:'60元',traffic:'公交109/118路',tip:'江南第一石窟，唐代摩崖造像'},
+{name:'八镜台',duration:'1小时',price:'20元',traffic:'市区公交',tip:'章江贡江汇流处，俯瞰赣州全景'},
+{name:'古浮桥',duration:'1小时',price:'免费',traffic:'市区步行',tip:'建春门浮桥，800年历史，宋代木船浮桥'},
+{name:'瑞金红色故都',duration:'全天',price:'联票100元',traffic:'赣州站乘动车1小时到瑞金',tip:'共和国摇篮，叶坪/沙洲坝/二苏大'},
+{name:'龙南围屋',duration:'3小时',price:'各围屋收费10-30元',traffic:'龙南市大巴2小时',tip:'客家围屋，关西新围+燕翼围'},
+{name:'丫山',duration:'3.5小时',price:'90元',traffic:'大余县公交',tip:'A哆乡村+玻璃栈道，森林瀑布'},
+{name:'阳明湖(陡水湖)',duration:'3小时',price:'100元(含船票)',traffic:'上犹县大巴',tip:'江西千岛湖，湖光山色'}
+],foods:[
+{name:'赣南小炒鱼',desc:'赣州名菜，草鱼块+酒醋，鲜辣入味'},
+{name:'赣州烫皮',desc:'安远/定南特产，米浆烫制，类似肠粉'},
+{name:'信丰萝卜饺',desc:'信丰县特产，萝卜丝做馅，蒸饺鲜香'},
+{name:'黄元米粿',desc:'赣南客家年糕，黄元柴灰水做，炒腊肉好吃'},
+{name:'粉笼床',desc:'兴国县四星望月，米粉蒸肉/菜，毛泽东命名'},
+{name:'赣南脐橙',desc:'信丰脐橙，10-12月上市，汁多肉甜，带一箱回去'}
+],areas:[
+{name:'赣州市区(章贡)',desc:'近宋城墙、郁孤台，交通枢纽'},
+{name:'瑞金市',desc:'红色首都，叶坪/沙洲坝红色景点'},
+{name:'龙南市',desc:'近客家围屋，关西新围最有名'},
+{name:'上犹县/大余县',desc:'近阳明湖/丫山，生态度假'}
+],budget:{cheap:230,mid:460,comfort:900},
+pitfalls:[
+'赣州宋代古城墙+古浮桥+八镜台+郁孤台是连在一起的，步行就能串起来玩',
+'古浮桥每天上午会拆开让船过，下午再接上，想走浮桥下午去',
+'瑞金红色旅游：叶坪+沙洲坝+二苏大+中共苏区中央局，联票100元含观光车',
+'关西新围是最大的客家方围，燕翼围是最高的，乌石围最古老，选1-2个看就行',
+'赣南脐橙11月-次年1月最好，信丰县的最正宗，别买太早的催熟果',
+'赣州菜也是辣菜！四星望月、小炒鱼都是辣的，不能辣提前说'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞','薄外套',
+'水杯'
+]},
+wuhan:{name:'武汉',sights:[
+{name:'黄鹤楼',duration:'2小时',price:'70元',traffic:'地铁4号线首义路站/公交402路',tip:'昔人已乘黄鹤去，江南三大名楼'},
+{name:'东湖风景区',duration:'半天-1天',price:'免费(各景点收费)',traffic:'地铁8号线梨园站',tip:'中国最大城中湖，武大樱花/磨山/东湖绿道'},
+{name:'户部巷',duration:'1.5小时',price:'免费',traffic:'地铁4/5号线司门口黄鹤楼站',tip:'汉味早点第一巷，早餐一条街'},
+{name:'江汉路步行街',duration:'2小时',price:'免费',traffic:'地铁2/6号线江汉路站',tip:'武汉百年商圈，江汉关+租界建筑'},
+{name:'武汉长江大桥',duration:'1小时',price:'免费',traffic:'地铁2号线积玉桥站',tip:'万里长江第一桥，可步行过桥看江景'},
+{name:'武汉大学',duration:'2小时',price:'免费(樱花季需预约)',traffic:'地铁2号线街道口站',tip:'珞珈山樱花3月中旬，中国最美大学'},
+{name:'湖北省博物馆',duration:'2.5小时',price:'免费(需预约)',traffic:'地铁4号线东亭站',tip:'越王勾践剑+曾侯乙编钟+郧县人头骨'},
+{name:'昙华林',duration:'2小时',price:'免费',traffic:'地铁2/7号线螃蟹岬站',tip:'武汉文艺小街，老建筑+咖啡馆'},
+{name:'木兰天池',duration:'4小时',price:'70元',traffic:'黄陂区大巴1.5小时',tip:'湖北九寨沟，峡谷+天池+玻璃桥'},
+{name:'汉口江滩',duration:'1.5小时',price:'免费',traffic:'地铁1号线三阳路站',tip:'芦苇荡11月超美，灯光秀夜景'}
+],foods:[
+{name:'热干面',desc:'蔡林记、庞记、长子热干面，芝麻酱拌面，武汉人早餐'},
+{name:'周黑鸭',desc:'周黑鸭/绝味/精武鸭脖，麻辣甜香，武汉特产'},
+{name:'武昌鱼',desc:'毛主席最爱，清蒸武昌鱼，团头鲂'},
+{name:'三鲜豆皮',desc:'老通城、三鲜豆皮店，豆皮糯米包三鲜'},
+{name:'面窝',desc:'武汉早餐，米浆炸制，中间薄脆四周绵软'},
+{name:'排骨藕汤',desc:'蔡甸藕炖排骨，湖北名菜，藕粉汤浓'}
+],areas:[
+{name:'江汉路/汉口',desc:'老租界，美食商圈，交通便利'},
+{name:'武昌(黄鹤楼/武大)',desc:'近黄鹤楼、武大、东湖'},
+{name:'楚河汉街',desc:'新商圈，杜莎夫人蜡像馆+汉秀'},
+{name:'光谷广场',desc:'大学生聚集地，性价比高'}
+],budget:{cheap:280,mid:560,comfort:1100},
+pitfalls:[
+'户部巷真的专坑游客！本地人去的是粮道街、水陆街，赵师傅红油热干面+油饼包烧麦必吃',
+'武汉大学樱花只有3月中旬-3月底！只有10天左右，其他季节就是普通大学，需要提前3天预约',
+'湖北省博超难约！提前3天0点放票，越王勾践剑+曾侯乙编钟是镇馆之宝，编钟演出18:00',
+'东湖绿道一定要租电动车骑行！全程28公里，步行累死，共享单车不让进',
+'黄鹤楼不用买票上去！在长江大桥、司门口、首义公园拍黄鹤楼全景更好看',
+'周黑鸭是甜辣口！不甜不是正宗周黑鸭，机场火车站的都正宗，和市区一样价'
+],luggage:[
+'身份证(省博+武大预约)','舒适鞋','大容量充电宝',
+'防晒霜+遮阳帽','雨伞(武汉多雨+夏天暴晒)','薄外套(空调)',
+'水杯'
+]},
+yichang:{name:'宜昌(三峡)',sights:[
+{name:'三峡大坝',duration:'半天',price:'免费(需预约+观光车35元)',traffic:'宜昌东站乘大巴1小时',tip:'世界最大水利枢纽，坛子岭+185观景+截流纪念园'},
+{name:'三峡人家',duration:'全天',price:'180元(含船票+观光车)',traffic:'宜昌站乘大巴1小时到胡金滩码头',tip:'长江三峡最秀美，巴王寨+龙进溪+水上人家'},
+{name:'西陵峡(三峡大瀑布)',duration:'3小时',price:'115元',traffic:'宜昌站乘大巴1小时',tip:'白果树瀑布，可穿雨衣穿越瀑布'},
+{name:'清江画廊',duration:'全天',price:'158元(含船票)',traffic:'长阳土家族自治县大巴1.5小时',tip:'八百里清江美如画，武落钟离山+倒影峡'},
+{name:'屈原故里',duration:'2小时',price:'80元',traffic:'秭归县公交',tip:'三峡大坝对面，屈原祠+端午文化'},
+{name:'西陵峡口(三游洞)',duration:'2.5小时',price:'三游洞78元+游船50元',traffic:'公交10路',tip:'白居易三游洞，三峡起始点'},
+{name:'车溪民俗区',duration:'3小时',price:'85元',traffic:'宜昌汽车南站乘大巴',tip:'土家族民俗，水车+蜡染+吊脚楼'},
+{name:'神农架',duration:'2-3天',price:'联票269元',traffic:'宜昌东站乘大巴3小时到木鱼镇',tip:'华中屋脊，神农顶+大九湖+官门山'}
+],foods:[
+{name:'宜昌红油小面',desc:'宜昌人早餐标配，麻辣小面配豆浆'},
+{name:'长江肥鱼',desc:'长江𫚔鱼，白汤炖煮，鲜美无刺，三峡名菜'},
+{name:'萝卜饺子',desc:'宜昌街头小吃，萝卜丝面糊油炸，酥脆香辣'},
+{name:'凉虾',desc:'宜昌夏季饮品，米凉虾+红糖水，清凉解暑'},
+{name:'榨广椒',desc:'湖北特产，辣椒玉米面发酵，炒腊肉下饭'},
+{name:'清江野鱼',desc:'清江鱼干，香辣味，零食特产'}
+],areas:[
+{name:'宜昌市区(伍家岗/西陵)',desc:'交通枢纽，近三峡游客中心'},
+{name:'秭归县',desc:'近三峡大坝+屈原故里，看大坝全景'},
+{name:'长阳县',desc:'近清江画廊，土家族文化'},
+{name:'神农架木鱼镇',desc:'神农架核心，住2晚最舒服'}
+],budget:{cheap:280,mid:560,comfort:1100},
+pitfalls:[
+'三峡大坝免费但必须提前在"三峡旅游"公众号预约！不预约不让进，观光车35元另收',
+'三峡人家+三峡大坝+三峡大瀑布是宜昌"三大三峡"，每个都要大半天，3天时间刚好',
+'三峡大瀑布一定要买一次性雨衣(5元)！穿越瀑布全身会湿，7-8月水量最大最壮观',
+'神农架很远(3小时车程)，而且景区分散，最少安排2天，大九湖晨雾超美',
+'清江画廊船是"倒坐船"，建议坐右侧靠窗，返航时看风景是正向的',
+'萝卜饺子推荐：CBD夜市、解放路天桥下，3元一个，现炸超好吃'
+],luggage:[
+'身份证(三峡大坝预约)','舒适登山鞋','大容量充电宝',
+'防晒霜+遮阳帽','一次性雨衣(三峡大瀑布必备)','薄外套(山区凉)',
+'水杯+零食','防水袋'
+]},
+shiyan:{name:'十堰(武当山)',sights:[
+{name:'武当山',duration:'1-2天',price:'旺季230元(门票+观光车)/淡季190元',traffic:'十堰站/武当山站乘公交202/203路',tip:'道教圣地，亘古无双胜境，天下第一仙山'},
+{name:'金顶',duration:'1.5小时',price:'27元另收',traffic:'琼台乘索道上行90元',tip:'太和宫金殿，全铜铸造，大岳太和宫'},
+{name:'南岩宫',duration:'1.5小时',price:'含在门票',traffic:'景区观光车',tip:'龙头香，悬在崖外的石龙头，危险但震撼'},
+{name:'紫霄宫',duration:'1小时',price:'15元另收',traffic:'景区观光车',tip:'紫霄福地，武当山保存最完整的道观'},
+{name:'太子坡',duration:'1小时',price:'含在门票',traffic:'景区观光车',tip:'真武大帝读书处，一柱十二梁建筑奇迹'},
+{name:'神农架(北)',duration:'2天',price:'联票269元',traffic:'十堰/房县大巴2.5小时',tip:'华中屋脊，天燕景区+神农坛'},
+{name:'丹江口水库',duration:'2小时',price:'免费',traffic:'丹江口市公交',tip:'南水北调中线水源地，碧水蓝天'},
+{name:'五龙河',duration:'3.5小时',price:'旺季80元/淡季50元',traffic:'郧西县大巴1.5小时',tip:'鄂西小九寨，峡谷瀑布'}
+],foods:[
+{name:'武当道教斋饭',desc:'紫霄宫斋饭，体验道家素斋，11:30开饭'},
+{name:'郧阳三合汤',desc:'郧阳特色，粉条+牛肉+饺子，一碗三样'},
+{name:'十堰酸浆面',desc:'十堰人早餐，酸浆水做面汤，酸辣开胃，配卤蛋绝了'},
+{name:'丹江口鱼头',desc:'丹江口水库胖头鱼，鱼头炖汤奶白鲜美，红烧也好吃'}
+],areas:[
+{name:'武当山景区内(乌鸦岭/琼台)',desc:'强烈推荐住山上！方便第二天登金顶看日出'},
+{name:'十堰市区',desc:'交通枢纽，性价比高'},
+{name:'武当山镇(山下)',desc:'近景区大门，住宿比山上便宜一半'},
+{name:'丹江口市',desc:'近丹江口水库，南水北调源头'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'武当山门票+观光车+保险=230元(旺季)，金顶27+紫霄15另收，索道上行90下行80',
+'武当山路线：D1景区车→太子坡→紫霄宫→南岩宫(住南岩)→D2早上徒步登金顶→索道下→琼台→下山',
+'金顶日出超美！住南岩的话凌晨3点就要起爬3小时，住琼台的话坐索道上去快',
+'龙头香是真的危险！现在不让自己上了，有道士代烧，心诚则灵',
+'三合汤是郧阳特色，推荐：十堰城区的老郧阳三合汤，一碗管饱',
+'去神农架从十堰走(北进)比从宜昌走(南进)近，但北线景点少，看天燕+红坪画廊'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'冲锋衣/厚外套(山顶低10度)','防晒霜+墨镜','一次性雨衣(山区多雨)',
+'保温杯+高能零食','手套(冬天)'
+]},
+enshi:{name:'恩施',sights:[
+{name:'恩施大峡谷',duration:'1-2天',price:'旺季140元(云龙地缝+七星寨)',traffic:'恩施站乘大巴1.5小时',tip:'东方科罗拉多，一炷香+云龙地缝震撼'},
+{name:'云龙地缝',duration:'2小时',price:'含在大峡谷门票',traffic:'大峡谷景区',tip:'地球最美伤痕，地缝瀑布群'},
+{name:'七星寨',duration:'3.5小时',price:'含在门票',traffic:'大峡谷景区车',tip:'一炷香+双子塔+绝壁栈道，大峡谷核心'},
+{name:'屏山峡谷',duration:'3小时',price:'210元(含船票)',traffic:'鹤峰县包车2小时',tip:'中国仙本那，悬浮木船，峡谷地缝碧水'},
+{name:'腾龙洞',duration:'2.5小时',price:'150元(含激光秀)',traffic:'利川市打车15分钟',tip:'中国最大溶洞，洞高72米，直升机都能飞进去，激光秀震撼'},
+{name:'土司城',duration:'2小时',price:'45元',traffic:'市区打车10分钟',tip:'土家族吊脚楼建筑群，九进堂土司皇城，了解土家文化'}
+],foods:[
+{name:'恩施炕小土豆',desc:'街头小吃，恩施富硒小土豆，炕得外焦里软'},
+{name:'合渣(懒豆腐)',desc:'土家族特色，豆浆+青菜煮，不用滤渣'},
+{name:'恩施腊肉',desc:'高山柴火腊肉，炒腊肉+土豆+笋子，咸香'},
+{name:'社饭',desc:'土家清明饭，蒿菜+腊肉+野葱+糯米蒸'},
+{name:'掉渣饼',desc:'恩施土家掉渣饼，肉馅烤饼，酥脆掉渣'},
+{name:'富硒茶',desc:'恩施玉露，蒸青绿茶，富硒健康'}
+],areas:[
+{name:'恩施市区(舞阳坝)',desc:'交通枢纽，近土司城、女儿城'},
+{name:'恩施大峡谷(沐抚镇)',desc:'近大峡谷，住1-2晚，方便游玩'},
+{name:'鹤峰县',desc:'近屏山峡谷，中国仙本那'},
+{name:'利川市',desc:'近腾龙洞+苏马荡，夏季避暑'}
+],budget:{cheap:270,mid:540,comfort:1100},
+pitfalls:[
+'恩施大峡谷七星寨绝壁栈道超刺激！恐高症慎入，全程徒步7.5公里，5小时+，老人小孩坐索道',
+'屏山峡谷要坐悬浮船拍照！船票含在门票，晴天中午光线最好，水才是蓝色透明的',
+'屏山峡谷在鹤峰县(2小时车程)+要查天气！下雨涨水会停航，白跑一趟',
+'腾龙洞是亚洲最大溶洞！里面很冷(10度以下)，一定要带厚外套，激光秀14:00有演出',
+'女儿城晚上最热闹！19:30有土家摆手舞+摔碗酒表演，进去免费',
+'恩施小土豆真的超好吃！10元一碗，炕的、炸的、煮的都好吃，必吃'
+],luggage:[
+'身份证','舒适登山鞋(大峡谷巨多)','大容量充电宝',
+'防晒霜+遮阳帽','薄外套(地缝+溶洞冷)','一次性雨衣(山区多雨)',
+'水+零食(山上贵)','防水袋(屏山乘船)'
+]},
+changsha:{name:'长沙',sights:[
+{name:'橘子洲',duration:'2.5小时',price:'免费(小火车40元)',traffic:'地铁2号线橘子洲站',tip:'独立寒秋湘江北去，毛爷爷青年雕像+烟花'},
+{name:'岳麓山',duration:'3小时',price:'免费(岳麓书院50元)',traffic:'地铁2/4号线溁湾镇站',tip:'停车坐爱枫林晚，爱晚亭+岳麓书院+麓山寺'},
+{name:'太平街',duration:'2小时',price:'免费',traffic:'地铁1/2号线五一广场站',tip:'长沙老牌美食街，贾谊故居+臭豆腐'},
+{name:'湖南博物院',duration:'2.5小时',price:'免费(需预约)',traffic:'地铁6号线湘雅医院站',tip:'马王堆汉墓，辛追夫人+素纱襌衣+T形帛画'},
+{name:'IFS国金中心',duration:'1.5小时',price:'免费',traffic:'地铁1/2号线五一广场站',tip:'长沙地标，7楼天台kaws雕塑打卡'},
+{name:'文和友(海信店)',duration:'2小时',price:'免费',traffic:'地铁2号线湘江中路站',tip:'超级文和友，80年代老长沙场景'},
+{name:'黄兴路步行街',duration:'1.5小时',price:'免费',traffic:'地铁1/2号线五一广场站',tip:'长沙不夜城，解放西酒吧街'},
+{name:'世界之窗',duration:'全天',price:'200元',traffic:'公交132/358路',tip:'微缩世界景观+过山车+水上乐园'},
+{name:'铜官窑古镇',duration:'4小时',price:'168元',traffic:'望城铜官窑公交',tip:'长沙铜官窑遗址，黑石号沉船，打铁花表演'},
+{name:'洋湖湿地',duration:'2小时',price:'免费',traffic:'地铁3号线洋湖湿地站',tip:'城市湿地，李自健美术馆+谢子龙影像馆'}
+],foods:[
+{name:'臭豆腐',desc:'黑色经典、文和友、罗家，外焦内嫩灌汤辣'},
+{name:'茶颜悦色',desc:'长沙本土奶茶，幽兰拿铁/声声乌龙，15元一杯'},
+{name:'口味虾/小龙虾',desc:'天宝兄弟、文和友、虾小龙，麻辣小龙虾超爽'},
+{name:'糖油粑粑',desc:'李公庙、火宫殿，金黄软糯甜而不腻'},
+{name:'长沙米粉',desc:'壹德壹、甘长顺，肉丝/牛肉粉，长沙早餐'},
+{name:'剁椒鱼头',desc:'坛宗剁椒鱼头，胖鱼头+剁椒，鲜辣入味'}
+],areas:[
+{name:'五一广场/IFS',desc:'市中心地铁枢纽，吃喝玩一体'},
+{name:'岳麓山/大学城',desc:'近岳麓山+湖大中南，学生美食多'},
+{name:'湘江世纪城/北辰',desc:'江景房，新城区高端酒店'},
+{name:'雨花亭/东塘',desc:'本地人居多，性价比高'}
+],budget:{cheap:300,mid:600,comfort:1300},
+pitfalls:[
+'茶颜悦色随便喝！15元一杯吊打喜茶奈雪，幽兰拿铁+声声乌龙+芊芊马卡龙必点',
+'湖南省博超难约！提前7天20:00放票，马王堆汉墓展是核心，辛追夫人在三楼',
+'橘子洲烟花只有重大节日才有(元旦/除夕/元宵/端午/中秋/国庆)，周六是以前的事了',
+'别在太平街主街吃！旁边的坡子街、都正街、冬瓜山才是本地人的美食天堂',
+'臭豆腐推荐黑色经典(灌汤)，罗家臭豆腐(酥脆)，文和友的其实一般般',
+'天宝兄弟的小龙虾真的要排队！中午11点放号，11:30就坐满，口味虾+蟹脚面必点'
+],luggage:[
+'身份证(省博预约)','舒适鞋(长沙夜生活走断腿)','大容量充电宝',
+'防晒霜+遮阳帽','雨伞(长沙多雨)','肠胃药(吃辣+奶茶)',
+'水杯'
+]},
+zhangjiajie:{name:'张家界',sights:[
+{name:'张家界国家森林公园',duration:'2-3天',price:'旺季225元/淡季145元(环保车免费)',traffic:'张家界站/荷花机场乘大巴40分钟',tip:'阿凡达哈利路亚山，石英砂岩峰林奇观'},
+{name:'袁家界',duration:'2.5小时',price:'含在门票',traffic:'水绕四门乘百龙天梯72元上',tip:'乾坤柱(哈利路亚山)+天下第一桥+迷魂台'},
+{name:'天子山',duration:'2小时',price:'含在门票',traffic:'袁家界乘环保车',tip:'御笔峰+仙女散花+贺龙公园，云海超美'},
+{name:'金鞭溪',duration:'2.5小时',price:'含在门票',traffic:'森林公园门步行',tip:'7.5公里徒步，金鞭岩+劈山救母+野猴群'},
+{name:'天门山',duration:'1天',price:'旺季278元/淡季235元(含索道)',traffic:'火车站/汽车站旁边索道站',tip:'通天大道99弯+天门洞+玻璃栈道'},
+{name:'玻璃栈道',duration:'1小时',price:'含在天门山门票+5元鞋套',traffic:'天门山顶',tip:'东线/西线/盘龙崖，三条都刺激，恐高慎入'},
+{name:'大峡谷(玻璃桥)',duration:'4小时',price:'259元(玻璃桥+大峡谷)',traffic:'慈利县大峡谷景区',tip:'世界最高玻璃桥，云天渡，蹦极超贵'},
+{name:'凤凰古城',duration:'1-2天',price:'免费(小景点收费)',traffic:'张家界西站乘动车1.5小时到凤凰古城站',tip:'北平遥南凤凰，沱江吊脚楼+夜景超美'}
+],foods:[
+{name:'三下锅',desc:'胡师傅三下锅，核桃肉+肥肠+猪肚，干锅炖'},
+{name:'湘西腊味',desc:'土家腊肉+腊肠，柴火熏制，炒笋子超香'},
+{name:'张家界米粉',desc:'早餐标配，牛肉粉/鳝鱼粉，辣的过瘾'},
+{name:'葛根粉',desc:'张家界特产，葛粉冲调，清热解毒降火'},
+{name:'土家酸萝卜',desc:'湘西泡菜，酸萝卜+酸辣子，开胃下饭'},
+{name:'血粑鸭',desc:'凤凰特色，鸭血+糯米+鸭肉，香辣入味'}
+],areas:[
+{name:'森林公园(武陵源)',desc:'近核心景区，门票4天有效，强烈推荐住2晚'},
+{name:'张家界市区(永定)',desc:'近天门山索道站，交通枢纽'},
+{name:'大峡谷(慈利)',desc:'近玻璃桥大峡谷，住一晚方便'},
+{name:'凤凰古城',desc:'近沱江吊脚楼，强烈建议住一晚看夜景'}
+],budget:{cheap:300,mid:600,comfort:1300},
+pitfalls:[
+'张家界森林公园+天门山+大峡谷是三个独立景区！门票分开买，最少安排4天才能玩好',
+'百龙天梯72元单程一定要坐！爬山上袁家界要4小时，天梯1分58秒搞定，值',
+'天门山A线(索道上-公路下)比B线好！索道28分钟穿越天门洞，99弯公路坐车刺激',
+'玻璃桥在大峡谷！和天门山玻璃栈道是两个地方，别搞错，两个都要1天',
+'凤凰古城不推荐跟团！自由行就行，晚上沱江放河灯+酒吧街，夜景超美',
+'野猴群！金鞭溪、袁家界都有野猴，别拿塑料袋，别喂食，猴子会抢包'
+],luggage:[
+'身份证','舒适登山鞋(巨多台阶!)','大容量充电宝',
+'防晒霜+遮阳帽','薄外套(山顶凉)','一次性雨衣(山区多雨)',
+'2L水+高能零食(山上贵)','防猴袋!'
+]},
+hengyang:{name:'衡阳(衡山)',sights:[
+{name:'衡山(南岳)',duration:'1-2天',price:'旺季110元/淡季80元',traffic:'衡阳站/衡山西站乘大巴1小时到南岳',tip:'五岳独秀，寿比南山，烧香祈福超灵'},
+{name:'南岳大庙',duration:'1.5小时',price:'旺季60元/淡季40元',traffic:'南岳区步行',tip:'江南第一庙，佛道共存，中轴线九进四重'},
+{name:'祝融峰',duration:'2小时',price:'含在衡山门票',traffic:'景区车+索道/徒步',tip:'衡山最高峰，祝融殿烧香，看日出最佳'},
+{name:'南天门',duration:'1小时',price:'含在门票',traffic:'景区车+索道',tip:'通天之门，登顶最后一关'},
+{name:'藏经殿',duration:'1小时',price:'含在门票',traffic:'景区车',tip:'衡山四绝之一，藏经殿之秀'},
+{name:'水帘洞',duration:'1.5小时',price:'30元',traffic:'南岳区打车',tip:'花果山原型，朱陵宫瀑布'},
+{name:'石鼓书院',duration:'1.5小时',price:'20元',traffic:'衡阳市区公交',tip:'北宋四大书院，湘江蒸水汇合处'},
+{name:'回雁峰',duration:'1小时',price:'免费',traffic:'市区公交',tip:'北雁南飞至此歇翅停回，衡山第一峰'}
+],foods:[
+{name:'南岳素斋',desc:'祝圣寺、南岳大庙素斋，禅意素食'},
+{name:'衡阳鱼粉',desc:'早餐标配，栖凤渡鱼粉，鲜辣够味'},
+{name:'耒阳坛子菜',desc:'衡阳特产，坛子腌菜，五花肉炒坛子菜下饭'},
+{name:'唆螺',desc:'夜宵摊必备，嗦螺配啤酒，香辣过瘾'},
+{name:'衡东土菜',desc:'衡东三樟黄贡椒，炒土鸭头超辣'},
+{name:'酥薄月饼',desc:'衡阳特产，桂花芝麻月饼，酥脆香甜'}
+],areas:[
+{name:'南岳镇(南岳)',desc:'近南岳大庙+衡山入口，强烈推荐住，方便早上上山'},
+{name:'衡阳市区(石鼓)',desc:'交通枢纽，近石鼓书院'},
+{name:'衡山西(高铁站)',desc:'近南岳衡山，高铁出行便利'},
+{name:'耒阳市',desc:'近蔡伦竹海，纸文化发源地'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'南岳烧香很灵！但别在门口买"天价香"，南岳大庙里面有请香处，10元起',
+'衡山景区车+索道通票78元，全程坐车+索道上祝融峰，不用爬',
+'祝融峰看日出要住山上！南天门附近有宾馆，早上4点起来走20分钟到顶',
+'鱼粉推荐：衡阳西湖公园旁边的鱼粉店，早餐摊都正宗，栖凤渡鱼粉最有名',
+'南岳大庙佛道共存！左边是道教八观，右边是佛教八寺，拜神别拜错了',
+'衡山冬天雾凇超美！12月-2月，衡山是南方少见的雾凇观赏地'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'冲锋衣(山顶凉)','防晒霜+遮阳帽','雨伞(山区多雨)',
+'保温杯+零食','厚衣服(看日出)'
+]},
+xiangtan:{name:'湘潭(韶山)',sights:[
+{name:'韶山',duration:'1天',price:'联票130元(各景点可免费)',traffic:'湘潭北站乘动车15分钟到韶山南站',tip:'毛主席故居+铜像广场+滴水洞，红色圣地'},
+{name:'毛泽东故居',duration:'1小时',price:'免费(需预约)',traffic:'韶山景区车',tip:'毛主席出生和成长的地方，排队长要早去'},
+{name:'毛泽东铜像',duration:'40分钟',price:'免费',traffic:'韶山景区车',tip:'韶山核心，铜像广场，很多人来此敬献花篮缅怀'},
+{name:'滴水洞',duration:'1.5小时',price:'40元',traffic:'韶山景区车到终点站',tip:'毛主席回乡住过的地方，一号别墅，山林幽静，有防空洞'}
+],foods:[
+{name:'毛氏红烧肉',desc:'毛主席最爱，毛家饭店，肥而不腻，入口即化'},
+{name:'剁椒鱼头',desc:'湘潭特产，胖头鱼剁椒蒸，湘菜系代表'},
+{name:'湘莲',desc:'湘潭寸三莲，中国三大名莲，煲汤/糖水'},
+{name:'湘潭米粉',desc:'湘潭人早餐，肉丝粉/牛肚粉，比长沙米粉更重口'},
+{name:'灯芯糕',desc:'湘潭传统糕点，形似灯芯，可点燃，甜香'},
+{name:'龙牌酱油',desc:'湘潭老字号，湖南第一名酱油，带一瓶回去'}
+],areas:[
+{name:'韶山市',desc:'近韶山红色景区，住1晚体验'},
+{name:'湘潭市区(岳塘)',desc:'交通枢纽，性价比高'},
+{name:'湘潭县(齐白石)',desc:'近齐白石故居，艺术之旅'},
+{name:'湘乡市',desc:'近东山书院+水府庙'}
+],budget:{cheap:230,mid:460,comfort:850},
+pitfalls:[
+'韶山毛泽东故居一定要提前1天在"天下韶山"公众号预约！没预约不让进，免费但限流',
+'毛主席铜像广场敬献花篮：官方花篮200-600元，门口100元3个的都是假的',
+'滴水洞是毛主席1966年住过的别墅，50元门票，值得一看了解历史',
+'毛氏红烧肉推荐：毛家饭店总店(韶山景区内)，但比外面贵2倍',
+'韶山离湘潭市区30分钟高铁，离长沙1小时高铁，长沙→韶山一日游完全可行',
+'韶山人很热情！拉你吃饭住宿的可以砍价，住宿一般100-150元一晚'
+],luggage:[
+'身份证(故居预约)','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞','薄外套',
+'水杯'
+]},
+yueyang:{name:'岳阳',sights:[
+{name:'岳阳楼',duration:'2小时',price:'70元',traffic:'公交3/9/20路',tip:'先天下之忧而忧，江南三大名楼唯一原址重建'},
+{name:'洞庭湖(君山岛)',duration:'3小时',price:'君山岛78元(含船票)',traffic:'岳阳楼码头乘船/公交15路',tip:'洞庭天下水，岳阳天下楼，君山银针+湘妃竹'},
+{name:'汴河街',duration:'1.5小时',price:'免费',traffic:'岳阳楼旁边步行',tip:'仿古宋街，就在岳阳楼门口，美食纪念品'},
+{name:'屈子祠(汨罗)',duration:'2.5小时',price:'55元',traffic:'汨罗市公交',tip:'屈原投江地，端午龙舟赛超热闹'},
+{name:'东洞庭湖湿地',duration:'半天',price:'免费',traffic:'君山区包车',tip:'观鸟圣地，冬季候鸟(11-3月)，麋鹿保护区'},
+{name:'张谷英村',duration:'2.5小时',price:'50元',traffic:'岳阳县大巴1.5小时',tip:'天下第一村，明清建筑群，600年同姓聚居'},
+{name:'平江起义旧址',duration:'1.5小时',price:'免费',traffic:'平江县城',tip:'彭德怀平江起义，红色教育'},
+{name:'石牛寨',duration:'4小时',price:'旺季188元/淡季148元',traffic:'平江县大巴2小时',tip:'百里丹霞，玻璃桥+悬崖秋千，刺激'}
+],foods:[
+{name:'岳阳烧烤',desc:'全国烧烤鼻祖，炮台山/庙前街夜宵摊，烤牛油是灵魂'},
+{name:'洞庭银鱼',desc:'洞庭湖特产银鱼，炒蛋/煲汤，鲜美无刺'},
+{name:'岳阳小龙虾',desc:'口味虾/油焖虾，和长沙口味不同，更麻辣'},
+{name:'平江酱干',desc:'平江特产，香辣豆干，零食特产'},
+{name:'湘阴面',desc:'湘阴特产，碱水面+牛肉码，早餐标配'},
+{name:'华容团子',desc:'糯米包馅，蒸制软糯，咸甜都有'}
+],areas:[
+{name:'岳阳楼区(市中心)',desc:'近岳阳楼+汴河街，交通枢纽'},
+{name:'君山区',desc:'近君山岛+洞庭湖湿地'},
+{name:'汨罗市',desc:'近屈子祠，端午龙舟最佳'},
+{name:'平江县',desc:'近石牛寨+平江起义旧址'}
+],budget:{cheap:240,mid:480,comfort:900},
+pitfalls:[
+'岳阳楼只有三层！但是三大名楼里唯一保持原址的，登楼看洞庭湖浩浩汤汤超壮观',
+'君山岛船票包含门票！但枯水期(10-3月)可以坐公交车过去，不用坐船',
+'岳阳烧烤真的是天花板！炮台山的"三毛烧烤"、"天保烧烤"，烤牛油、烤虾尾必点',
+'张谷英村的天井很神奇！下雨天水不从天井溢出，古代排水系统超牛',
+'屈子祠端午(农历五月初五)有国际龙舟赛，超热闹，提前订房',
+'石牛寨的"步步惊心"高空吊桥真的很恐怖！恐高症别走'
+],luggage:[
+'身份证','舒适鞋','充电宝',
+'防晒霜+遮阳帽','雨伞(湖区多雨)','薄外套(湖边凉)',
+'水杯'
+]},
+chenzhou:{name:'郴州(东江湖)',sights:[
+{name:'东江湖',duration:'全天',price:'A线80元/B线178元(含漂流)',traffic:'资兴市公交/大巴1小时',tip:'中华奇景雾漫小东江，5-9月晨雾超仙'},
+{name:'雾漫小东江',duration:'2小时',price:'含在东江湖门票',traffic:'东江湖景区2号线',tip:'5:30-8:00晨雾，渔夫撒网，拍照圣地'},
+{name:'高椅岭',duration:'3小时',price:'免费(暂收80元清洁费)',traffic:'资兴市打车40分钟',tip:'被上帝遗忘的地方，丹霞地貌+碧水，网红打卡'},
+{name:'仰天湖大草原',duration:'半天',price:'80元',traffic:'郴州站包车2小时',tip:'南方呼伦贝尔，草原+风车+霍比特人小屋'},
+{name:'莽山',duration:'2天',price:'旺季165元/淡季120元',traffic:'宜章县大巴2小时',tip:'原始森林，莽山烙铁头蛇保护区+五指峰'},
+{name:'飞天山',duration:'3小时',price:'40元',traffic:'公交10路',tip:'丹霞地貌，悬棺+天生桥'},
+{name:'苏仙岭',duration:'2.5小时',price:'旺季45元/淡季35元',traffic:'公交20/27/28路',tip:'天下第十八福地，三绝碑+白鹿洞'},
+{name:'万华岩',duration:'2小时',price:'旺季55元/淡季45元',traffic:'公交9路',tip:'地下溶洞，世界级地下河钟乳石'}
+],foods:[
+{name:'栖凤渡鱼粉',desc:'郴州早餐标配，凤楚传奇，鲢鱼熬汤超辣超鲜'},
+{name:'郴州杀猪粉',desc:'白露塘杀猪粉，现煮猪肉+猪血+猪肝，鲜掉眉毛'},
+{name:'东江三文鱼',desc:'东江湖冷水养殖，刺身/一鱼五吃，比深海三文鱼更嫩'},
+{name:'临武鸭',desc:'临武县特产，舜华临武鸭，酱鸭/卤味特产'},
+{name:'嘉禾血鸭',desc:'嘉禾县名菜，鸭血炒鸭，和永州血鸭齐名'},
+{name:'汝城板鸭',desc:'汝城县特产，风干腊鸭，咸香下饭'}
+],areas:[
+{name:'郴州市区(北湖/苏仙)',desc:'交通枢纽，近苏仙岭+飞天山'},
+{name:'资兴市(东江)',desc:'近东江湖+高椅岭，强烈推荐住这里方便看晨雾'},
+{name:'宜章县(莽山)',desc:'近莽山国家森林公园，住2晚'},
+{name:'桂阳县/仰天湖',desc:'近仰天湖大草原，包车前往'}
+],budget:{cheap:250,mid:500,comfort:950},
+pitfalls:[
+'雾漫小东江真的超仙！但只有5:30-8:00才有，必须住资兴东江镇，早上滴滴10分钟到',
+'高椅岭虽然网红但真的震撼！龙脊步道拍照最好看，没栏杆的地方要注意安全',
+'仰天湖大草原"照骗"严重！5-7月草绿才好看，其他季节都是黄草+泥巴路',
+'栖凤渡鱼粉真的超辣！不辣的要和老板说"少辣"，微辣就等于外地的中辣',
+'杀猪粉推荐：白露塘第一家杀猪粉，现煮的，真的鲜，就是远了点',
+'东江湖漂流非常刺激！全程3小时，全身湿透，7-8月最佳，记得带换洗衣物'
+],luggage:[
+'身份证','舒适登山鞋','大容量充电宝',
+'防晒霜+遮阳帽','薄外套(山区凉)','雨伞(湖区多雨)',
+'换洗衣物(漂流/晨雾潮湿)','相机(拍照圣地!)'
+]}
+};
+
+const CITY_KEYS = Object.keys(CITY_DATA);
+
+function normalizeCityKey(input) {
+  if (!input) return '';
+  return String(input).toLowerCase().trim().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '');
+}
+
+function getCityNameByKey(key) {
+  const data = CITY_DATA[key];
+  return data ? data.name : (CITY_ALIASES_REVERSE[key] || key);
+}
+
+const CITY_ALIASES_REVERSE = {};
+(function buildReverseAlias(){
+  for (const alias in CITY_ALIASES) {
+    const key = CITY_ALIASES[alias];
+    if (!CITY_ALIASES_REVERSE[key]) CITY_ALIASES_REVERSE[key] = alias;
+  }
+})();
+
+function fuzzySearchCities(keyword) {
+  const nk = normalizeCityKey(keyword);
+  if (!nk) return [];
+  const results = [];
+  for (const alias in CITY_ALIASES) {
+    if (normalizeCityKey(alias).includes(nk) || nk.includes(normalizeCityKey(alias))) {
+      const key = CITY_ALIASES[alias];
+      if (!results.includes(key)) results.push(key);
+    }
+  }
+  for (const key of CITY_KEYS) {
+    const data = CITY_DATA[key];
+    if (!data) continue;
+    const name = normalizeCityKey(data.name);
+    if ((name.includes(nk) || nk.includes(name)) && !results.includes(key)) {
+      results.push(key);
+    }
+  }
+  for (const key of CITY_KEYS) {
+    const data = CITY_DATA[key];
+    if (!data) continue;
+    const name = normalizeCityKey(data.name);
+    let found = false;
+    for (const ch of nk) if (name.includes(ch)) { found = true; break; }
+    if (found && !results.includes(key)) results.push(key);
+  }
+  return results.slice(0, 10);
+}
+
+function getCityData(cityKey) {
+  const nk = normalizeCityKey(cityKey);
+  let key = null;
+  for (const alias in CITY_ALIASES) {
+    if (normalizeCityKey(alias) === nk) {
+      key = CITY_ALIASES[alias];
+      break;
+    }
+  }
+  if (!key && CITY_KEYS.includes(cityKey)) key = cityKey;
+  if (!key) {
+    for (const k of CITY_KEYS) {
+      const d = CITY_DATA[k];
+      if (d && normalizeCityKey(d.name) === nk) { key = k; break; }
+    }
+  }
+  if (key && CITY_DATA[key]) {
+    const base = CITY_DATA[key];
+    return {
+      key: key,
+      name: base.name,
+      isTemplate: false,
+      sights: (base.sights || []).map(s => ({...s, checked: false})),
+      foods: (base.foods || []).map(f => ({...f, checked: false})),
+      areas: (base.areas || []).map(a => ({...a, selected: false})),
+      budget: base.budget || {cheap:300,mid:600,comfort:1200},
+      pitfalls: base.pitfalls || [],
+      luggage: base.luggage || [],
+      days: 2
+    };
+  }
+  const displayName = cityKey && cityKey.length > 0 ? cityKey : '未知城市';
+  return generateCityTemplate(displayName);
+}
+
+function generateCityTemplate(cityName) {
+  const key = 'dynamic_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  return {
+    key: key,
+    name: cityName,
+    isTemplate: true,
+    sights: [
+      {
+        name: '📌 实用攻略：如何找到当地必去景点',
+        duration: '建议1-2小时研究',
+        price: '免费(或各景点价格)',
+        traffic: '使用小红书/抖音/大众点评App搜索',
+        tip: '关键词："' + cityName + '必去景点TOP10"、"' + cityName + '小众景点"、"' + cityName + '拍照打卡地"。优先选收藏10w+、近期更新的笔记，避开纯广告推广帖。经典5A景区+当地人推荐的老城巷弄搭配着玩。'
+      },
+      {
+        name: '📌 实用攻略：快速解锁城市美食地图',
+        duration: '研究0.5-1小时',
+        price: '人均50-200元不等',
+        traffic: '大众点评必吃榜+小红书+B站美食纪录片',
+        tip: '大众点评筛选"必吃榜"（官方认证靠谱）+ 搜"' + cityName + '老城区美食"（比景区附近地道）。早餐推荐找老巷子里的小摊，午饭选点评高分本地菜，夜宵搜XX路夜市街。避坑：景区门口的XX美食街大多不正宗。'
+      },
+      {
+        name: '📌 实用攻略：住宿选区域黄金法则',
+        duration: '提前1-2周订房',
+        price: '经济型200+ / 中档400+ / 舒适800+',
+        traffic: '携程/美团/飞猪对比价格+看近30天真实评价',
+        tip: '选住宿3原则：①交通方便（近地铁/高铁站/公交枢纽，打车到各景点≤20分钟）；②吃的多（近商圈/老城区/居民生活区点外卖方便）；③避开火车站/汽车站1公里内（人流杂价格虚高）。预算允许住民宿体验本地生活。'
+      },
+      {
+        name: '📌 实用攻略：市内交通出行省钱方案',
+        duration: '提前查好实时交通',
+        price: '地铁公交日均20元 / 打车日均60元',
+        traffic: '高德地图/百度地图+支付宝乘车码+哈啰/美团骑行',
+        tip: '提前在支付宝领取' + cityName + '地铁/公交乘车码（全国90%城市支持），短距离3公里内骑共享单车（便宜还能看街景）。打车注意：①火车站/机场正规打表区排队上车；②滴滴/高德叫车（路线透明有预估价格）；③偏远地区打表可能拒载，提前谈好价格。'
+      },
+      {
+        name: '📌 实用攻略：避坑自救指南（通用6条）',
+        duration: '出发前必看10分钟',
+        price: '省下500-5000元坑钱',
+        traffic: '小红书搜XX避坑+黑猫投诉/知乎搜骗局',
+        tip: '①出租车绕路/拒载：开导航+要发票+记车牌号举报；②景区门口"野导"/"快速通道"100%骗局；③特产别在景区买，去本地连锁超市/市场；④陌生地方搭讪"免费送礼物/抽奖"套路深，礼貌快走；⑤网红拍照打卡点先搜近期实拍，很多滤镜太重；⑥酒店入住检查：反锁安全链+摄像头检查（关灯找红点）。'
+      }
+    ].map(s => ({...s, checked: false})),
+    foods: [
+      {name:'🔍 搜索关键词："' + cityName + '必吃美食TOP10"',desc:'小红书+大众点评交叉验证，避开网红店专去老巷'},
+      {name:'🍜 早餐类：老城区的巷口小摊最靠谱',desc:'询问酒店前台/出租车司机"你自己常去的早餐店"'},
+      {name:'🍲 正餐类：点评4.5分以上+近期100条好评',desc:'本地菜/私房菜优先，连锁酒楼也稳，避开"网红打卡店"'},
+      {name:'🍻 夜宵类：搜索XX路夜市/步行街',desc:'大排档人多的店就对了，凑上去问本地人"哪家好吃"'},
+      {name:'🎁 特产：本地大型连锁超市采购',desc:'菜市场/农贸市场也靠谱，真空包装带走，景区别买'},
+      {name:'🥤 饮品：本土特色奶茶/凉茶品牌',desc:'搜"' + cityName + '本土奶茶"，比某茶某雪性价比高还地道'}
+    ].map(f => ({...f, checked: false})),
+    areas: [
+      {name: '🚄 高铁站/火车站周边', desc: '适合短期停留1-2天，出行超方便，连锁酒店集中'},
+      {name: '🏛️ 老城区/市中心商圈', desc: '近景点+美食多+地铁枢纽，第一次去首选'},
+      {name: '🎡 新城区CBD', desc: '酒店新设施好，价格稍高，夜景不错适合住高端'},
+      {name: '🏘️ 大学/居民生活区', desc: '性价比最高！学生美食多，价格便宜，接地气'}
+    ].map(a => ({...a, selected: false})),
+    budget: {cheap: 280, mid: 580, comfort: 1150},
+    pitfalls: [
+      '📌 出发前必做：小红书搜"' + cityName + '避坑指南"，刷至少3篇近3个月的真实笔记，记下高频骗局',
+      '📌 出租车不打表/绕路：上车前先问"打表吗？"，不打换一辆，打开导航看实时路线',
+      '📌 景区门口拉客："快速通道"/"内部优惠票"/"跟团一日游"全是套路，一律礼貌拒绝快走',
+      '📌 吃饭不选门口拉客的店！拉客越凶越坑，选店里坐了7成当地人的店准没错',
+      '📌 特产采购：导航搜"本地大型连锁超市"（如永辉/大润发/本地品牌），价格透明不宰客',
+      '📌 拍照打卡点滤镜：搜关键字时加"实拍"/"无滤镜"，看近1个月的真实照片才靠谱'
+    ],
+    luggage: [
+      '证件类：身份证+学生证/军官证（门票半价）+银行卡少量现金',
+      '电子类：手机充电宝+充电线+耳机+转接插头',
+      '衣物类：换洗衣物（按天数+1备）+舒适运动鞋+薄外套（空调/早晚）',
+      '洗护类：防晒霜SPF50+（强烈推荐）+洗漱旅行套装+雨伞+太阳帽墨镜',
+      '医药类：肠胃药（吃坏肚子）+感冒药+创可贴+晕车药（按需）',
+      '其他类：大容量水杯（环保省钱）+便携零食+充电宝随身带',
+      '额外：行程单打印或存手机离线+保险单+紧急联系人写手机锁屏'
+    ],
+    days: 2,
+    templateGuides: [
+      {
+        title: '📌 AI接口接入说明（可选）',
+        desc: '如需接入AI自动生成实时城市攻略，可调用：① 百度地图/高德地图POI搜索API获取真实景点、美食、交通；② 小红书/抖音开放平台（需申请）抓取近期热门笔记；③ 大语言模型API（如GPT/文心一言/通义千问）传入"' + cityName + '8-20个真实景点（含价格、时长、交通、贴士）+6个美食+4个住宿区+3档预算+6条避坑+7条行李" 作为prompt，模型返回JSON格式再渲染。参考接入代码：/* fetch(\'https://your-api-endpoint\', {method:\'POST\', body: JSON.stringify({city:\'' + cityName + '\'})}).then(r=>r.json()).then(data=>{ Object.assign(cityData, data); render(); }); */'
+      }
+    ]
+  };
+}
+
+const state = {
+  step: 1,
+  currentProvince: null,
+  selectedCities: [],
+  cityConfigs: {},
+  currentCityIndex: 0,
+  sightTabIndex: {},
+  budgetLevel: 'mid',
+  generatedItinerary: null,
+  checkedItems: {},
+  searchInput: '',
+  searchLoading: false,
+  searchResults: []
+};
+
+function showToast(msg, duration = 2000) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), duration);
+}
+
+function parseDurationToHours(durStr) {
+  if (!durStr) return 1.5;
+  const s = String(durStr);
+  if (s.includes('全天')) return 8;
+  if (s.includes('天')) {
+    const match = s.match(/(\d+\.?\d*)/);
+    return match ? parseFloat(match[1]) * 8 : 8;
+  }
+  const range = s.match(/(\d+\.?\d*)\s*[-~至]\s*(\d+\.?\d*)/);
+  if (range) return (parseFloat(range[1]) + parseFloat(range[2])) / 2;
+  const single = s.match(/(\d+\.?\d*)/);
+  return single ? parseFloat(single[1]) : 1.5;
+}
+
+function parsePriceToNum(priceStr) {
+  if (!priceStr) return 0;
+  const s = String(priceStr);
+  if (s.includes('免费') || s.includes('免票')) return 0;
+  const range = s.match(/(\d+)\s*[-~至/]\s*(\d+)/);
+  if (range) return (parseInt(range[1]) + parseInt(range[2])) / 2;
+  const singles = s.match(/(\d+)/g);
+  if (singles && singles.length > 0) return parseInt(singles[singles.length - 1]);
+  return 0;
+}
+
+function addCity(keyOrName, forceKey = null) {
+  state.searchLoading = true;
+  render();
+  return new Promise(resolve => {
+    setTimeout(() => {
+      let matchedKey = null;
+      const input = String(keyOrName || '').trim();
+      if (!input) {
+        state.searchLoading = false;
+        showToast('请输入城市名称');
+        resolve(false);
+        render();
+        return;
+      }
+      if (forceKey && CITY_DATA[forceKey]) {
+        matchedKey = forceKey;
+      }
+      if (!matchedKey) {
+        const nk = normalizeCityKey(input);
+        for (const alias in CITY_ALIASES) {
+          if (normalizeCityKey(alias) === nk) {
+            matchedKey = CITY_ALIASES[alias];
+            break;
+          }
+        }
+      }
+      if (!matchedKey) {
+        if (CITY_KEYS.includes(input)) matchedKey = input;
+      }
+      if (!matchedKey) {
+        for (const k of CITY_KEYS) {
+          const d = CITY_DATA[k];
+          if (d && normalizeCityKey(d.name) === normalizeCityKey(input)) {
+            matchedKey = k;
+            break;
+          }
+        }
+      }
+      if (!matchedKey) {
+        const fuzzy = fuzzySearchCities(input);
+        if (fuzzy.length > 0) {
+          matchedKey = fuzzy[0];
+          showToast('已匹配：' + getCityNameByKey(matchedKey));
+        }
+      }
+      let cityConfig;
+      if (matchedKey) {
+        if (state.selectedCities.includes(matchedKey)) {
+          state.searchLoading = false;
+          showToast(getCityNameByKey(matchedKey) + ' 已经在行程中了～');
+          resolve(false);
+          render();
+          return;
+        }
+        cityConfig = getCityData(matchedKey);
+      } else {
+        showToast('未找到' + input + '，为您生成通用攻略模板📌');
+        cityConfig = getCityData(input);
+      }
+      const finalKey = cityConfig.key;
+      state.selectedCities.push(finalKey);
+      state.cityConfigs[finalKey] = cityConfig;
+      state.sightTabIndex[finalKey] = 0;
+      state.currentCityIndex = Math.max(0, state.selectedCities.length - 1);
+      state.searchLoading = false;
+      state.searchInput = '';
+      state.searchResults = [];
+      resolve(true);
+      render();
+    }, 600);
+  });
+}
+
+function removeCity(key) {
+  const idx = state.selectedCities.indexOf(key);
+  if (idx >= 0) {
+    state.selectedCities.splice(idx, 1);
+    delete state.cityConfigs[key];
+    delete state.sightTabIndex[key];
+    if (state.currentCityIndex >= state.selectedCities.length) {
+      state.currentCityIndex = Math.max(0, state.selectedCities.length - 1);
+    }
+    showToast('已移除该城市');
+    render();
+  }
+}
+
+function toggleProvince(provinceKey) {
+  if (state.currentProvince === provinceKey) {
+    state.currentProvince = null;
+  } else {
+    const p = PROVINCES.find(x => x.key === provinceKey);
+    if (p) {
+      if (p.cities.length === 1 && !['beijing','tianjin','shanghai','chongqing','hohhot','harbin','changchun'].includes(provinceKey)) {
+        addCity(p.cities[0]);
+      } else {
+        state.currentProvince = provinceKey;
+      }
+    }
+  }
+  render();
+}
+
+function toggleCityInProvince(cityKey) {
+  if (state.selectedCities.includes(cityKey)) {
+    removeCity(cityKey);
+  } else {
+    addCity(cityKey, cityKey);
+  }
+}
+
+function handleCheckbox(e, key, type, index) {
+  e.stopPropagation();
+  const cfg = state.cityConfigs[key];
+  if (!cfg) return;
+  if (type === 'sight') {
+    cfg.sights[index].checked = !cfg.sights[index].checked;
+  } else if (type === 'food') {
+    cfg.foods[index].checked = !cfg.foods[index].checked;
+  }
+  render();
+}
+
+function handleAreaSelect(e, key, areaIdx) {
+  e.stopPropagation();
+  const cfg = state.cityConfigs[key];
+  if (!cfg) return;
+  cfg.areas.forEach((a, i) => a.selected = (i === areaIdx ? !a.selected : false));
+  render();
+}
+
+function handleDaysChange(key, delta) {
+  const cfg = state.cityConfigs[key];
+  if (!cfg) return;
+  const newDays = Math.max(1, Math.min(15, (cfg.days || 2) + delta));
+  cfg.days = newDays;
+  render();
+}
+
+function setBudgetLevel(level) {
+  state.budgetLevel = level;
+  render();
+}
+
+function switchSightTab(key, idx) {
+  state.sightTabIndex[key] = idx;
+  render();
+}
+
+function nextStep() {
+  if (state.step === 1) {
+    if (state.selectedCities.length === 0) {
+      showToast('请至少选择1个城市哦～');
+      return;
+    }
+    for (const key of state.selectedCities) {
+      const cfg = state.cityConfigs[key];
+      if (cfg.sights && cfg.sights.length > 0) {
+        const topN = Math.min(4, cfg.sights.length);
+        for (let i = 0; i < topN; i++) cfg.sights[i].checked = true;
+      }
+      if (cfg.foods && cfg.foods.length > 0) {
+        const topN = Math.min(3, cfg.foods.length);
+        for (let i = 0; i < topN; i++) cfg.foods[i].checked = true;
+      }
+    }
+  }
+  if (state.step === 2) {
+    for (const key of state.selectedCities) {
+      const cfg = state.cityConfigs[key];
+      if (cfg.areas && cfg.areas.length > 0 && !cfg.areas.some(a => a.selected)) {
+        cfg.areas[0].selected = true;
+      }
+    }
+  }
+  if (state.step === 3) {
+    if (!generateItinerary()) return;
+  }
+  if (state.step < 4) {
+    state.step++;
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    render();
+  }
+}
+
+function prevStep() {
+  if (state.step > 1) {
+    state.step--;
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    render();
+  }
+}
+
+function backToStart() {
+  state.step = 1;
+  state.generatedItinerary = null;
+  state.checkedItems = {};
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  render();
+}
+
+function generateItinerary() {
+  const cities = state.selectedCities;
+  if (cities.length === 0) {
+    showToast('请先选择城市');
+    return false;
+  }
+  const itinerary = { cities: [], totalDays: 0, transitDays: 0, budget: {}, pitfalls: [], luggage: [] };
+  let prevCityKey = null;
+  for (let i = 0; i < cities.length; i++) {
+    const key = cities[i];
+    const cfg = state.cityConfigs[key];
+    if (prevCityKey && i > 0) {
+      itinerary.transitDays++;
+      itinerary.cities.push({
+        isTransit: true,
+        key: '__transit_' + i,
+        name: '中转日',
+        fromCity: getCityNameByKey(prevCityKey),
+        toCity: cfg.name
+      });
+    }
+    const cityDays = cfg.days || 2;
+    const selectedSights = (cfg.sights || []).filter(s => s.checked);
+    const selectedFoods = (cfg.foods || []).filter(f => f.checked);
+    const selectedArea = (cfg.areas || []).find(a => a.selected);
+    const totalSightHours = selectedSights.reduce((sum, s) => sum + parseDurationToHours(s.duration), 0);
+    const hoursPerDay = 10;
+    const minDays = Math.max(1, Math.ceil(totalSightHours / hoursPerDay));
+    const days = Math.max(cityDays, minDays);
+    const hoursPerDayActual = totalSightHours > 0 ? totalSightHours / days : hoursPerDay;
+    let sightQueue = [...selectedSights];
+    let foodQueue = [...selectedFoods];
+    const daysPlan = [];
+    for (let d = 0; d < days; d++) {
+      const dayPlan = [];
+      let currentTime = 8 * 60 + 30;
+      if (selectedArea) {
+        dayPlan.push({ type: 'area', title: '🏨 抵达酒店入住 ' + selectedArea.name, desc: selectedArea.desc || '放下行李，轻装出门游玩', time: formatTime(currentTime), icon: '🏨' });
+        currentTime += 45;
+      }
+      const maxHoursToday = hoursPerDayActual + 1;
+      let hoursToday = 0;
+      while (hoursToday < maxHoursToday && sightQueue.length > 0) {
+        const sight = sightQueue.shift();
+        const itemHours = parseDurationToHours(sight.duration);
+        const minutes = Math.min(360, Math.round(itemHours * 60));
+        const price = parsePriceToNum(sight.price);
+        dayPlan.push({
+          type: 'sight',
+          title: '🏛️ ' + sight.name,
+          desc: (sight.traffic ? '🚌 ' + sight.traffic + ' | ' : '') + (sight.tip || ''),
+          price: price > 0 ? '门票 ¥' + price : '免费',
+          duration: sight.duration,
+          time: formatTime(currentTime),
+          icon: '📍',
+          sightKey: key + '_sight_' + (cfg.sights.indexOf(sight))
+        });
+        currentTime += minutes + 20;
+        hoursToday += itemHours;
+        if ((hoursToday < maxHoursToday - 0.5 || foodQueue.length > 0) && sightQueue.length > 0 && currentTime < 11.5 * 60) continue;
+        if (currentTime >= 11.5 * 60 && currentTime <= 13 * 60 && foodQueue.length > 0) {
+          const food = foodQueue.shift();
+          dayPlan.push({
+            type: 'food',
+            title: '🍜 午餐：' + food.name,
+            desc: food.desc || '午市体验当地招牌美食',
+            price: '人均 ¥50-80',
+            time: formatTime(12 * 60),
+            icon: '🍽️',
+            foodKey: key + '_food_' + (cfg.foods.indexOf(food))
+          });
+          currentTime = 13 * 60 + 30;
+        }
+      }
+      if (foodQueue.length > 0 && !dayPlan.some(p => p.type === 'food' && p.title.includes('晚餐'))) {
+        const food = foodQueue.shift();
+        dayPlan.push({
+          type: 'food',
+          title: '🥘 晚餐：' + food.name,
+          desc: food.desc || '晚市品尝地道特色菜',
+          price: '人均 ¥60-100',
+          time: formatTime(19 * 60),
+          icon: '🍽️',
+          foodKey: key + '_food_' + (cfg.foods.indexOf(food))
+        });
+      }
+      if (dayPlan.length === 1) {
+        dayPlan.push({
+          type: 'free',
+          title: '💤 自由活动/深度感受城市',
+          desc: cfg.isTemplate ? '漫步老城区/逛本地市场/找咖啡馆发呆，深入体验' : '逛逛本地人的商圈、看场电影、体验夜生活',
+          time: formatTime(14 * 60),
+          icon: '✨'
+        });
+      }
+      daysPlan.push(dayPlan);
+    }
+    itinerary.cities.push({
+      isTransit: false,
+      key: key,
+      name: cfg.name,
+      isTemplate: !!cfg.isTemplate,
+      templateGuides: cfg.templateGuides || [],
+      days: daysPlan,
+      selectedArea: selectedArea,
+      pitfalls: cfg.pitfalls || [],
+      luggage: cfg.luggage || [],
+      budgetLevel: cfg.budget || {cheap:300,mid:600,comfort:1200}
+    });
+    itinerary.totalDays += days;
+    prevCityKey = key;
+  }
+  const lv = state.budgetLevel;
+  const totalDays = itinerary.totalDays;
+  const cityBudgets = itinerary.cities.filter(c => !c.isTransit).map(c => c.budgetLevel[lv] || 500);
+  const avgBudget = cityBudgets.length > 0 ? cityBudgets.reduce((s,b)=>s+b,0) / cityBudgets.length : 500;
+  const foodPercent = lv === 'cheap' ? 0.25 : lv === 'mid' ? 0.3 : 0.35;
+  const hotelPercent = lv === 'cheap' ? 0.35 : lv === 'mid' ? 0.35 : 0.3;
+  const ticketPercent = lv === 'cheap' ? 0.15 : lv === 'mid' ? 0.15 : 0.12;
+  const transitPercent = lv === 'cheap' ? 0.1 : lv === 'mid' ? 0.1 : 0.08;
+  const otherPercent = 1 - foodPercent - hotelPercent - ticketPercent - transitPercent;
+  const perDayBudget = avgBudget;
+  const totalBudget = Math.round(perDayBudget * totalDays + (itinerary.transitDays * 200));
+  itinerary.budget = {
+    hotel: Math.round(totalBudget * hotelPercent),
+    food: Math.round(totalBudget * foodPercent),
+    tickets: Math.round(totalBudget * ticketPercent),
+    transit: Math.round(totalBudget * transitPercent + itinerary.transitDays * 300),
+    other: Math.round(totalBudget * otherPercent),
+    total: totalBudget,
+    perDay: Math.round(perDayBudget),
+    levelText: lv === 'cheap' ? '穷游背包' : lv === 'mid' ? '舒适适中' : '豪华享受',
+    totalDays: totalDays + itinerary.transitDays
+  };
+  const allLuggage = [];
+  for (const c of itinerary.cities.filter(c => !c.isTransit)) {
+    for (const l of c.luggage) if (!allLuggage.includes(l)) allLuggage.push(l);
+  }
+  itinerary.luggage = allLuggage.slice(0, 10);
+  const allPitfalls = [];
+  for (const c of itinerary.cities.filter(c => !c.isTransit)) {
+    for (const p of (c.pitfalls || []).slice(0, 6)) {
+      const line = '【' + c.name + '】' + p;
+      if (!allPitfalls.includes(line)) allPitfalls.push(line);
+    }
+  }
+  itinerary.pitfalls = allPitfalls.slice(0, 12);
+  itinerary.totalDaysActual = totalDays + itinerary.transitDays;
+  state.generatedItinerary = itinerary;
+  return true;
+}
+
+function formatTime(totalMinutes) {
+  totalMinutes = Math.round(totalMinutes);
+  let h = Math.floor(totalMinutes / 60) % 24;
+  let m = totalMinutes % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+function toggleItineraryChecked(e, itemKey) {
+  e.stopPropagation();
+  state.checkedItems[itemKey] = !state.checkedItems[itemKey];
+  render();
+}
+
+function renderHeader() {
+  const stepLabels = ['选城市','选景点','选住宿/天数','生成攻略','完成✅'];
+  const current = state.step;
+  let stepsHtml = '';
+  for (let i = 1; i <= 4; i++) {
+    const cls = 'step' + (i === current ? ' active' : i < current ? ' done' : '');
+    stepsHtml += `<div class="${cls}">
+      <div class="step-num">${i < current ? '✓' : i}</div>
+      <div class="step-label">${stepLabels[i-1]}</div>
+    </div>`;
+  }
+  return `<div class="header">
+    <h1>🧳 J人旅行攻略生成器</h1>
+    <div class="subtitle">${state.generatedItinerary ? (state.selectedCities.map(k => getCityNameByKey(k)).join(' → ') + ' · ' + state.generatedItinerary.totalDaysActual + '天') : '选择喜欢的城市，安排专属你的完美行程'}</div>
+    <div class="steps">${stepsHtml}</div>
+  </div>`;
+}
+
+function renderSelectedTags() {
+  if (state.selectedCities.length === 0) return '';
+  let html = '<div class="selected-tags">';
+  for (const key of state.selectedCities) {
+    const name = getCityNameByKey(key);
+    html += `<span class="city-tag">${name}<span class="remove" onclick="event.stopPropagation(); removeCity('${key}');">×</span></span>`;
+  }
+  return html + '</div>';
+}
+
+function renderSearchBox() {
+  const loadingHtml = state.searchLoading ? '<span class="loading-spinner"></span>' : '🔍 添加';
+  return `<div class="search-box">
+    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="state.searchInput=this.value;" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCity(this.value);}" />
+    <button onclick="event.stopPropagation(); addCity(document.getElementById('citySearchInput').value);" ${state.searchLoading ? 'disabled' : ''}>${loadingHtml}</button>
+  </div>`;
+}
+
+function renderProvinceView() {
+  if (state.currentProvince) {
+    const p = PROVINCES.find(x => x.key === state.currentProvince);
+    if (!p) return '';
+    let cityHtml = '';
+    for (const cityKey of p.cities) {
+      const cityData = CITY_DATA[cityKey];
+      const name = cityData ? cityData.name : (CITY_ALIASES_REVERSE[cityKey] || cityKey);
+      const selected = state.selectedCities.includes(cityKey);
+      cityHtml += `<div class="city-card ${selected ? 'selected' : ''}" onclick="event.stopPropagation(); toggleCityInProvince('${cityKey}');">
+        ${name}${selected ? '<span class="check">✓</span>' : ''}
+      </div>`;
+    }
+    return `<button class="back-btn" onclick="event.stopPropagation(); toggleProvince(null);">← 返回省份列表</button>
+    <div class="section-title"><span class="num">📍</span> ${p.name} · 选择城市（可多选）</div>
+    <div class="city-grid">${cityHtml}</div>`;
+  }
+  let html = '<div class="section-title"><span class="num">1</span> 选择省份 → 进入城市列表</div><div class="province-grid">';
+  for (const p of PROVINCES) {
+    html += `<div class="province-card" onclick="event.stopPropagation(); toggleProvince('${p.key}');">${p.name}</div>`;
+  }
+  return html + '</div>';
+}
+
+function renderStep1() {
+  let html = renderSelectedTags();
+  html += renderSearchBox();
+  if (state.searchResults.length > 0) {
+    html += '<div class="section-title"><span class="num">🔎</span> 搜索结果（点击添加）</div><div class="city-grid">';
+    for (const key of state.searchResults) {
+      const name = getCityNameByKey(key);
+      const selected = state.selectedCities.includes(key);
+      html += `<div class="city-card ${selected ? 'selected' : ''}" onclick="event.stopPropagation(); addCity('${key}','${key}');">${name}${selected ? '<span class="check">✓</span>' : ''}</div>`;
+    }
+    html += '</div>';
+  }
+  html += renderProvinceView();
+  return html;
+}
+
+function renderSightList(cfg, key, tabIndex) {
+  const lists = [
+    {title: '🏛️ 必去景点', items: cfg.sights, type: 'sight'},
+    {title: '✨ 特色街区', items: [
+      {name: cfg.name + '老城历史街区', duration: '2小时', price: '免费', traffic: '地铁/公交可达市中心老城区', tip: cfg.isTemplate ? '📌 搜索：小红书搜"' + cfg.name + '老城区/步行街/历史街区"，近期实拍笔记选最地道的' : cfg.name + '的历史文化街区，感受本地生活气息，寻找隐藏美食'},
+      {name: cfg.name + '夜市/美食街', duration: '3小时', price: '免费', traffic: '打车/公交前往', tip: cfg.isTemplate ? '📌 搜大众点评/小红书："' + cfg.name + '本地人去的夜市/XX路小吃街"，避开"XX美食街"' : '夜幕降临后最热闹，本地小吃+夜生活聚集地'},
+      {name: cfg.name + '网红打卡地', duration: '1.5小时', price: '免费', traffic: '打车前往', tip: cfg.isTemplate ? '📌 抖音搜"' + cfg.name + '拍照圣地"，选近1个月点赞高的，避开纯滤镜照骗' : '城市新地标/文艺园区/创意市集，拍照打卡超出片'},
+      ...((cfg.sights || []).slice(2, 5).map(s => ({...s, tip: '✨ 特色推荐 · ' + (s.tip || '')})))
+    ].map(s => ({...s, checked: false})), type: 'feature'},
+    {title: '🍜 美食推荐', items: cfg.foods, type: 'food'}
+  ];
+  const tabData = lists[tabIndex] || lists[0];
+  let html = `<div class="tabs">`;
+  for (let i = 0; i < lists.length; i++) {
+    html += `<div class="tab ${i === tabIndex ? 'active' : ''}" onclick="event.stopPropagation(); switchSightTab('${key}', ${i});">${lists[i].title}</div>`;
+  }
+  html += '</div>';
+  if (tabData.type === 'food') {
+    html += '<div class="sight-list">';
+    for (let i = 0; i < tabData.items.length; i++) {
+      const f = tabData.items[i];
+      const checked = f.checked ? 'checked' : '';
+      html += `<div class="food-item">
+        <div class="checkbox ${checked}" onclick="event.stopPropagation(); toggleCheckbox(event,'${key}','food',${i});"></div>
+        <div><div class="food-name">${escapeHtml(f.name)}</div><div class="food-desc">${escapeHtml(f.desc || '')}</div></div>
+      </div>`;
+    }
+    html += '</div>';
+  } else {
+    html += '<div class="sight-list">';
+    for (let i = 0; i < tabData.items.length; i++) {
+      const s = tabData.items[i];
+      const originalIdx = tabData.type === 'feature' ? -1 : i;
+      const isChecked = tabData.type === 'feature' ? false : (s.checked || false);
+      const checkClass = isChecked ? 'checked' : '';
+      const clickHandler = tabData.type === 'feature' ? '' : `onclick="event.stopPropagation(); toggleCheckbox(event,'${key}','sight',${i});"`;
+      html += `<div class="sight-item">
+        <div class="checkbox ${checkClass}" ${clickHandler}></div>
+        <div class="sight-info">
+          <div class="sight-name">${escapeHtml(s.name)}</div>
+          <div class="sight-meta">
+            <span class="sight-duration">⏱️ ${escapeHtml(s.duration || '')}</span>
+            <span class="sight-price">💰 ${escapeHtml(s.price || '')}</span>
+          </div>
+          <div style="margin-top:4px;font-size:11px;color:#666;">🚌 ${escapeHtml(s.traffic || '')}</div>
+          <div class="sight-tip">💡 ${escapeHtml(s.tip || '')}</div>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  return html;
+}
+
+function renderStep2() {
+  if (state.selectedCities.length === 0) {
+    return '<div class="empty-state"><div class="icon">🤔</div><div class="text">还没有选择城市哦～<br>请先返回上一步选择城市</div></div>';
+  }
+  let html = '';
+  for (let c = 0; c < state.selectedCities.length; c++) {
+    const key = state.selectedCities[c];
+    const cfg = state.cityConfigs[key];
+    if (!cfg) continue;
+    const tabIndex = state.sightTabIndex[key] || 0;
+    const isTemplate = cfg.isTemplate;
+    html += `<div class="city-panel">
+      <div class="city-panel-header">
+        <div class="city-panel-title">${c + 1}. 📍 ${escapeHtml(cfg.name)}${isTemplate ? ' <span style="font-size:11px;color:#059669;background:#d1fae5;padding:2px 8px;border-radius:10px;">📌通用攻略</span>' : ''}</div>
+        <div class="remove-city" onclick="event.stopPropagation(); removeCity('${key}');">移除城市</div>
+      </div>`;
+    if (isTemplate && cfg.templateGuides) {
+      for (const g of cfg.templateGuides) {
+        html += `<div class="template-guide"><div class="template-guide-title">${g.title}</div><div class="template-guide-desc">${g.desc}</div></div>`;
+      }
+    }
+    html += renderSightList(cfg, key, tabIndex);
+    html += '</div>';
+  }
+  return html;
+}
+
+function renderStep3() {
+  if (state.selectedCities.length === 0) {
+    return '<div class="empty-state"><div class="icon">🤔</div><div class="text">还没有选择城市哦～</div></div>';
+  }
+  let html = '';
+  for (let c = 0; c < state.selectedCities.length; c++) {
+    const key = state.selectedCities[c];
+    const cfg = state.cityConfigs[key];
+    if (!cfg) continue;
+    html += `<div class="city-panel">
+      <div class="city-panel-header">
+        <div class="city-panel-title">${c + 1}. 📍 ${escapeHtml(cfg.name)}</div>
+      </div>
+      <div class="config-section">
+        <div class="config-label">🏨 住宿区域（选一个）</div>
+        <div class="area-grid">`;
+    for (let i = 0; i < cfg.areas.length; i++) {
+      const a = cfg.areas[i];
+      html += `<div class="area-card ${a.selected ? 'selected' : ''}" onclick="event.stopPropagation(); handleAreaSelect(event,'${key}',${i});">
+        <div class="area-name">${escapeHtml(a.name)}</div>
+        <div class="area-desc">${escapeHtml(a.desc || '')}</div>
+      </div>`;
+    }
+    html += `</div></div>
+    <div class="config-section">
+      <div class="config-label">📅 游玩天数</div>
+      <div class="days-config">
+        <span class="days-label">${escapeHtml(cfg.name)}安排</span>
+        <div class="days-btns">
+          <div class="day-btn" onclick="event.stopPropagation(); handleDaysChange('${key}',-1);">−</div>
+          <div class="day-count">${cfg.days || 2}</div>
+          <div class="day-btn" onclick="event.stopPropagation(); handleDaysChange('${key}',1);">+</div>
+          <span style="font-size:12px;color:#888;">天</span>
+        </div>
+      </div>
+    </div></div>`;
+  }
+  html += `<div class="config-section">
+    <div class="config-label">💰 预算档位（三档总览）</div>
+    <div class="budget-tabs">
+      <div class="budget-tab cheap ${state.budgetLevel === 'cheap' ? 'active' : ''}" onclick="event.stopPropagation(); setBudgetLevel('cheap');">
+        <span class="emoji">🎒</span><span class="label">穷游背包</span>
+      </div>
+      <div class="budget-tab mid ${state.budgetLevel === 'mid' ? 'active' : ''}" onclick="event.stopPropagation(); setBudgetLevel('mid');">
+        <span class="emoji">💼</span><span class="label">舒适适中</span>
+      </div>
+      <div class="budget-tab comfort ${state.budgetLevel === 'comfort' ? 'active' : ''}" onclick="event.stopPropagation(); setBudgetLevel('comfort');">
+        <span class="emoji">💎</span><span class="label">豪华享受</span>
+      </div>
+    </div>
+  </div>
+  <div class="config-section" style="padding:12px;background:#f5f3fa;border-radius:12px;font-size:12px;color:#666;line-height:1.8;">
+    <div style="font-weight:700;color:#333;margin-bottom:6px;">📊 预算预估（按当前选择）</div>
+    ${renderBudgetPreview()}
+  </div>`;
+  return html;
+}
+
+function renderBudgetPreview() {
+  let total = 0;
+  const lv = state.budgetLevel;
+  for (const key of state.selectedCities) {
+    const cfg = state.cityConfigs[key];
+    if (!cfg) continue;
+    const perDay = cfg.budget ? cfg.budget[lv] : 500;
+    total += perDay * (cfg.days || 2);
+  }
+  const cityN = state.selectedCities.length;
+  const transit = cityN > 1 ? (cityN - 1) * 200 : 0;
+  const grand = total + transit;
+  const totalDays = state.selectedCities.reduce((s, k) => {
+    const c = state.cityConfigs[k];
+    return s + (c ? (c.days || 2) : 2);
+  }, 0) + Math.max(0, cityN - 1);
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+    <div>🏙️ 城市数：<b>${cityN} 个</b></div>
+    <div>📅 总天数：<b>${totalDays} 天</b></div>
+    <div>🛏️ 住宿+餐饮：<b>¥${Math.round(grand * 0.65)}</b></div>
+    <div>🎫 门票+中转：<b>¥${Math.round(grand * 0.35)}</b></div>
+    <div style="grid-column:span 2;font-size:14px;color:#764ba2;font-weight:700;margin-top:4px;">💵 ${lv === 'cheap' ? '穷游' : lv === 'mid' ? '舒适' : '豪华'}总预算：≈ ¥${grand}（${Math.round(grand/totalDays)}/天）</div>
+  </div>`;
+}
+
+function renderStep4() {
+  const iti = state.generatedItinerary;
+  if (!iti) {
+    nextStep();
+    return '';
+  }
+  const html = `<div class="result-header">
+    <h2>🎉 你的专属旅行攻略已生成</h2>
+    <div class="result-summary">
+      <div class="summary-item"><div class="summary-value">${iti.totalDaysActual}</div><div class="summary-label">总天数(含中转)</div></div>
+      <div class="summary-item"><div class="summary-value">${iti.cities.filter(c=>!c.isTransit).length}</div><div class="summary-label">游玩城市</div></div>
+      <div class="summary-item"><div class="summary-value">¥${iti.budget.total}</div><div class="summary-label">${iti.budget.levelText}总预算</div></div>
+    </div>
+  </div>
+  ${renderItineraryDays(iti)}
+  ${renderAllPitfalls(iti)}
+  ${renderLuggageList(iti)}
+  ${renderBudgetCard(iti)}
+  <button class="generate-btn" onclick="event.stopPropagation(); backToStart();">🔄 重新规划新的行程</button>`;
+  return html;
+}
+
+function renderItineraryDays(iti) {
+  let dayCounter = 1;
+  let html = '';
+  for (const city of iti.cities) {
+    if (city.isTransit) {
+      html += `<div class="day-card">
+        <div class="transit-header day-header">
+          <div class="day-title">第 ${dayCounter} 天 · 🚄 中转日</div>
+          <div class="day-city">${escapeHtml(city.fromCity)} → ${escapeHtml(city.toCity)}</div>
+        </div>
+        <div class="time-line">
+          <div class="time-item"><div class="time-badge"><div class="time-value">09:00</div><div class="time-icon">🧳</div></div>
+            <div class="time-content"><div class="time-title">🏨 酒店退房 + 行李寄存</div><div class="time-desc">整理物品，贵重物品随身带，大件可寄存在前台</div></div>
+          </div>
+          <div class="time-item"><div class="time-badge"><div class="time-value">11:30</div><div class="time-icon">🚄</div></div>
+            <div class="time-content"><div class="time-title">🚌 前往高铁站/机场/客运站</div><div class="time-desc">建议提前1.5-2小时到车站，节假日更要提前</div><div class="time-cost">市内交通 ¥30-80</div></div>
+          </div>
+          <div class="time-item"><div class="time-badge"><div class="time-value">15:30</div><div class="time-icon">🏙️</div></div>
+            <div class="time-content"><div class="time-title">📍 抵达 ${escapeHtml(city.toCity)}</div><div class="time-desc">打车/公交前往酒店，沿途感受城市氛围</div><div class="time-cost">城际交通 ¥150-500</div></div>
+          </div>
+          <div class="time-item"><div class="time-badge"><div class="time-value">19:00</div><div class="time-icon">🍽️</div></div>
+            <div class="time-content"><div class="time-title">🥘 晚餐：本地特色美食探索</div><div class="time-desc">放下行李，去${escapeHtml(city.toCity)}老城区找本地人多的馆子</div><div class="time-cost">人均 ¥60-120</div></div>
+          </div>
+        </div>
+      </div>`;
+      dayCounter++;
+      continue;
+    }
+    if (city.isTemplate && city.templateGuides && city.templateGuides.length > 0) {
+      for (const g of city.templateGuides) {
+        html += `<div class="city-panel" style="margin-bottom:14px;border-color:#a7f3d0;">
+          <div class="city-panel-header"><div class="city-panel-title" style="color:#065f46;">📌 ${escapeHtml(city.name)} · 通用攻略说明</div></div>
+          <div class="template-guide" style="margin:0;"><div class="template-guide-title">${g.title}</div><div class="template-guide-desc">${g.desc}</div></div>
+        </div>`;
+      }
+    }
+    for (let d = 0; d < city.days.length; d++) {
+      const dayPlan = city.days[d];
+      html += `<div class="day-card">
+        <div class="day-header">
+          <div class="day-title">第 ${dayCounter} 天 · ${escapeHtml(city.name)} 第${d+1}天</div>
+          <div class="day-city">📍 ${escapeHtml(city.name)}</div>
+        </div>
+        <div class="time-line">`;
+      for (const p of dayPlan) {
+        const itemKey = p.sightKey || p.foodKey || (city.key + '_' + dayCounter + '_' + Math.random().toString(36).slice(2,8));
+        const isChecked = state.checkedItems[itemKey] ? 'checked' : '';
+        const onClick = p.sightKey || p.foodKey ? `onclick="event.stopPropagation(); toggleItineraryChecked(event,'${itemKey}');"` : '';
+        const checkHtml = p.sightKey || p.foodKey ? `<div class="checkbox ${isChecked}" style="position:absolute;top:8px;right:8px;" ${onClick}></div>` : '';
+        html += `<div class="time-item">
+          <div class="time-badge"><div class="time-value">${p.time}</div><div class="time-icon">${p.icon || '📍'}</div></div>
+          <div class="time-content ${isChecked}" style="position:relative;">
+            ${checkHtml}
+            <div class="time-title">${p.title}</div>
+            <div class="time-desc">${escapeHtml(p.desc || '')}</div>
+            ${p.price ? `<div class="time-cost">${p.price}</div>` : ''}
+          </div>
+        </div>`;
+      }
+      html += `</div></div>`;
+      dayCounter++;
+    }
+  }
+  return html;
+}
+
+function renderAllPitfalls(iti) {
+  if (!iti.pitfalls || iti.pitfalls.length === 0) return '';
+  let html = `<div class="pitfalls-card">
+    <div class="pitfalls-title">⚠️ 避坑指南 · 真实提醒</div>`;
+  for (const p of iti.pitfalls.slice(0, 12)) {
+    html += `<div class="pitfall-item">${escapeHtml(p)}</div>`;
+  }
+  return html + '</div>';
+}
+
+function renderLuggageList(iti) {
+  const luggage = iti.luggage && iti.luggage.length > 0 ? iti.luggage : [
+    '身份证+学生证（必带）','舒适运动鞋（走路巨多）','大容量充电宝',
+    '防晒霜SPF50+','雨伞/一次性雨衣','薄外套（空调/早晚）',
+    '水杯（环保省钱）','肠胃药/感冒药','洗漱旅行套装','太阳帽+墨镜'
+  ];
+  let html = `<div class="luggage-card">
+    <div class="luggage-title">🎒 行李清单 · 10项必备（勾选确认）</div>
+    <div class="luggage-grid">`;
+  for (let i = 0; i < luggage.length; i++) {
+    const key = 'lug_' + i;
+    const checked = state.checkedItems[key] ? 'checked' : '';
+    html += `<div class="luggage-item">
+      <div class="checkbox ${checked}" onclick="event.stopPropagation(); toggleItineraryChecked(event,'${key}');"></div>
+      <span>${escapeHtml(luggage[i])}</span>
+    </div>`;
+  }
+  return html + '</div></div>';
+}
+
+function renderBudgetCard(iti) {
+  const b = iti.budget;
+  return `<div class="budget-card">
+    <div class="budget-title">💰 预算明细 · ${b.levelText}档（${b.totalDays}天${iti.transitDays ? '含'+iti.transitDays+'中转' : ''}）</div>
+    <div class="budget-breakdown">
+      <div class="budget-row"><span>🛏️ 住宿 (${b.totalDays}晚)</span><span>¥${b.hotel}</span></div>
+      <div class="budget-row"><span>🍜 餐饮 (${b.totalDays}天)</span><span>¥${b.food}</span></div>
+      <div class="budget-row"><span>🎫 景点门票</span><span>¥${b.tickets}</span></div>
+      <div class="budget-row"><span>🚄 城际+市内交通${iti.transitDays ? '('+iti.transitDays+'中转)' : ''}</span><span>¥${b.transit}</span></div>
+      <div class="budget-row"><span>✨ 购物/其他备用</span><span>¥${b.other}</span></div>
+    </div>
+    <div class="budget-total"><span>💵 总预算</span><span>¥${b.total}（≈ ¥${b.perDay}/天）</span></div>
+  </div>`;
+}
+
+function renderFooter() {
+  if (state.step === 4) return '';
+  const canNext = state.step < 4;
+  const nextDisabled = state.step === 1 && state.selectedCities.length === 0;
+  const prevBtn = state.step > 1
+    ? `<button class="btn-prev" onclick="event.stopPropagation(); prevStep();">← 上一步</button>`
+    : '';
+  const nextText = state.step === 1 ? '下一步：选景点' : state.step === 2 ? '下一步：住宿/天数' : '✨ 生成我的攻略';
+  return `<div class="footer-nav">
+    ${prevBtn}
+    <button class="btn-next" onclick="event.stopPropagation(); nextStep();" ${nextDisabled ? 'disabled' : ''}>${canNext ? nextText : ''}</button>
+  </div>`;
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (!app) return;
+  let body = '';
+  if (state.step === 4) {
+    body = renderStep4();
+  } else {
+    body = `<div class="main page active">`;
+    body += `<div class="section-title"><span class="num">${state.step}</span> ${
+      state.step === 1 ? '选择要去的城市（可多选+跨省份）' :
+      state.step === 2 ? '勾选景点和美食（城市分组+3个标签页）' :
+      state.step === 3 ? '住宿区域 + 游玩天数 + 预算档位' : '攻略生成中'
+    }</div>`;
+    if (state.step === 1) body += renderStep1();
+    else if (state.step === 2) body += renderStep2();
+    else if (state.step === 3) body += renderStep3();
+    body += '</div>';
+  }
+  app.innerHTML = renderHeader() + body + renderFooter();
+}
+
+(function initApp(){
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('DOMContentLoaded', function(){
+      render();
+      setTimeout(() => {
+        if (state.selectedCities.length === 0) {
+          const preload = ['nanjing','suzhou'];
+          Promise.all(preload.map(k => new Promise(r => {
+            const cfg = getCityData(k);
+            state.selectedCities.push(k);
+            state.cityConfigs[k] = cfg;
+            state.sightTabIndex[k] = 0;
+            r();
+          }))).then(() => { render(); });
+        }
+      }, 300);
+    });
+  } else {
+    render();
+  }
+})();
+</script>
+</body>
+</html>
+};
