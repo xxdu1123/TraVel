@@ -12,7 +12,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 .header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;}
 .header .subtitle{font-size:12px;opacity:0.85;margin-top:4px;}
 .steps{display:flex;justify-content:space-between;margin-top:16px;gap:4px;}
-.step{flex:1;text-align:center;}
+.step{flex:1;text-align:center;cursor:pointer;user-select:none;}
+.step.disabled{cursor:not-allowed;pointer-events:none;opacity:0.55;}
 .step-num{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;margin-bottom:4px;}
 .step.active .step-num{background:#fff;color:#764ba2;}
 .step.done .step-num{background:#4ade80;color:#fff;}
@@ -25,9 +26,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 
 .selected-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:12px;background:#f5f3fa;border-radius:12px;min-height:44px;}
 .selected-tags:empty::before{content:'还没有选择城市哦～点击下方省份卡片开始';color:#999;font-size:13px;}
-.city-tag{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:6px 10px 6px 12px;border-radius:20px;font-size:12px;display:inline-flex;align-items:center;gap:6px;animation:fadeIn 0.3s;}
+.city-tag{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:6px 10px 6px 12px;border-radius:20px;font-size:12px;display:inline-flex;align-items:center;gap:6px;}
 .city-tag .remove{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.3);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
 
 .search-box{display:flex;gap:8px;margin-bottom:16px;}
 .search-box input{flex:1;padding:10px 14px;border:2px solid #e8e4f0;border-radius:12px;font-size:14px;outline:none;transition:all 0.3s;}
@@ -40,7 +40,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 .province-card{padding:14px 8px;background:#fff;border:2px solid #e8e4f0;border-radius:14px;text-align:center;cursor:pointer;transition:all 0.25s;font-size:13px;font-weight:600;color:#555;}
 .province-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(118,75,162,0.15);}
 .province-card.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent;}
-.back-btn{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;background:#f5f3fa;border:none;border-radius:20px;font-size:12px;color:#764ba2;cursor:pointer;margin-bottom:12px;font-weight:600;}
+.back-btn{display:inline-flex;align-items:center;gap:4px;padding:10px 16px;background:#f5f3fa;border:2px solid #e8e4f0;border-radius:20px;font-size:13px;color:#764ba2;cursor:pointer;margin-bottom:12px;font-weight:600;transition:all 0.2s;position:relative;z-index:5;}
+.back-btn:hover{background:#fff;border-color:#764ba2;}
+.back-btn:active{transform:scale(0.96);}
 
 .city-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .city-card{padding:12px 6px;background:#fff;border:2px solid #e8e4f0;border-radius:12px;text-align:center;cursor:pointer;transition:all 0.25s;font-size:12px;position:relative;}
@@ -59,21 +61,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 .remove-city:hover{background:#fff0f0;}
 
 .sight-list{display:flex;flex-direction:column;gap:10px;}
-.sight-item{display:flex;gap:10px;padding:10px;background:#faf8ff;border-radius:10px;align-items:flex-start;}
-.checkbox{width:20px;height:20px;border:2px solid #d4cce0;border-radius:50%;flex-shrink:0;cursor:pointer;position:relative;top:2px;transition:all 0.2s;}
+.sight-item{display:flex;gap:10px;padding:12px 10px;background:#faf8ff;border-radius:10px;align-items:flex-start;cursor:pointer;transition:all 0.15s;border:2px solid transparent;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:rgba(118,75,162,0.06);}
+.sight-item:hover{border-color:#ded4ee;background:#f3ebff;}
+.sight-item:active{transform:scale(0.99);}
+.sight-item.selected{border-color:#764ba2;background:#f3ebff;}
+.food-item{display:flex;align-items:center;gap:10px;padding:12px 10px;background:#fff8f0;border-radius:10px;cursor:pointer;transition:all 0.15s;border:2px solid transparent;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:rgba(217,119,6,0.05);}
+.food-item:hover{border-color:#fed7aa;}
+.food-item.selected{border-color:#d97706;background:#fff7ed;}
+.checkbox{width:22px;height:22px;border:2px solid #d4cce0;border-radius:50%;flex-shrink:0;cursor:pointer;position:relative;top:2px;transition:all 0.18s;background:#fff;pointer-events:none;}
 .checkbox.checked{background:linear-gradient(135deg,#667eea,#764ba2);border-color:transparent;}
-.checkbox.checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:12px;font-weight:bold;}
-.sight-info{flex:1;}
+.checkbox.checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:13px;font-weight:bold;}
+.sight-info{flex:1;pointer-events:none;}
 .sight-name{font-size:13px;font-weight:600;color:#333;}
 .sight-meta{font-size:11px;color:#888;margin-top:4px;display:flex;flex-wrap:wrap;gap:8px;}
 .sight-meta span{display:inline-flex;align-items:center;gap:2px;}
-.sight-tip{font-size:11px;color:#764ba2;margin-top:4px;background:#f3ebff;padding:4px 8px;border-radius:6px;}
+.sight-tip{font-size:11px;color:#764ba2;margin-top:6px;background:#f3ebff;padding:5px 8px;border-radius:6px;line-height:1.5;}
 .sight-duration{background:#fff;padding:2px 6px;border-radius:4px;color:#667eea;font-weight:600;}
 .sight-price{background:#fff;padding:2px 6px;border-radius:4px;color:#f59e0b;font-weight:600;}
-
-.food-item{display:flex;align-items:center;gap:10px;padding:10px;background:#fff8f0;border-radius:10px;}
-.food-name{font-size:13px;font-weight:600;color:#333;}
-.food-desc{font-size:11px;color:#888;margin-top:2px;}
+.food-name{font-size:13px;font-weight:600;color:#333;pointer-events:none;}
+.food-desc{font-size:11px;color:#888;margin-top:3px;pointer-events:none;}
 
 .area-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
 .area-card{padding:12px;background:#faf8ff;border:2px solid #e8e4f0;border-radius:10px;cursor:pointer;transition:all 0.2s;}
@@ -170,9 +176,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;z-index:9999;animation:toastIn 0.3s;}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,-40%);}to{opacity:1;transform:translate(-50%,-50%);}}
 
-.page{display:none;animation:pageSlide 0.3s;}
+.page{display:none;}
 .page.active{display:block;}
-@keyframes pageSlide{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:translateX(0);}}
 
 input[type="checkbox"]{display:none;}
 </style>
@@ -2886,7 +2891,7 @@ function toggleCityInProvince(cityKey) {
 }
 
 function handleCheckbox(e, key, type, index) {
-  e.stopPropagation();
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
   const cfg = state.cityConfigs[key];
   if (!cfg) return;
   if (type === 'sight') {
@@ -2894,6 +2899,49 @@ function handleCheckbox(e, key, type, index) {
   } else if (type === 'food') {
     cfg.foods[index].checked = !cfg.foods[index].checked;
   }
+  render();
+}
+const toggleCheckbox = handleCheckbox;
+
+function goToStep(targetStep) {
+  targetStep = parseInt(targetStep, 10);
+  if (isNaN(targetStep) || targetStep < 1 || targetStep > 4) return;
+  if (targetStep > state.step) {
+    for (let s = state.step; s < targetStep; s++) {
+      if (s === 1 && state.selectedCities.length === 0) {
+        showToast('请至少选择1个城市哦～');
+        return;
+      }
+      if (s === 1) {
+        for (const key of state.selectedCities) {
+          const cfg = state.cityConfigs[key];
+          if (cfg.sights && cfg.sights.length > 0) {
+            const topN = Math.min(4, cfg.sights.length);
+            for (let i = 0; i < topN; i++) cfg.sights[i].checked = true;
+          }
+          if (cfg.foods && cfg.foods.length > 0) {
+            const topN = Math.min(3, cfg.foods.length);
+            for (let i = 0; i < topN; i++) cfg.foods[i].checked = true;
+          }
+        }
+      }
+      if (s === 2) {
+        for (const key of state.selectedCities) {
+          const cfg = state.cityConfigs[key];
+          if (cfg.areas && cfg.areas.length > 0 && !cfg.areas.some(a => a.selected)) {
+            cfg.areas[0].selected = true;
+          }
+        }
+      }
+      if (s === 3) {
+        if (!generateItinerary()) return;
+      }
+    }
+    state.step = targetStep;
+  } else {
+    state.step = targetStep;
+  }
+  window.scrollTo({top: 0, behavior: 'auto'});
   render();
 }
 
@@ -2924,45 +2972,13 @@ function switchSightTab(key, idx) {
 }
 
 function nextStep() {
-  if (state.step === 1) {
-    if (state.selectedCities.length === 0) {
-      showToast('请至少选择1个城市哦～');
-      return;
-    }
-    for (const key of state.selectedCities) {
-      const cfg = state.cityConfigs[key];
-      if (cfg.sights && cfg.sights.length > 0) {
-        const topN = Math.min(4, cfg.sights.length);
-        for (let i = 0; i < topN; i++) cfg.sights[i].checked = true;
-      }
-      if (cfg.foods && cfg.foods.length > 0) {
-        const topN = Math.min(3, cfg.foods.length);
-        for (let i = 0; i < topN; i++) cfg.foods[i].checked = true;
-      }
-    }
-  }
-  if (state.step === 2) {
-    for (const key of state.selectedCities) {
-      const cfg = state.cityConfigs[key];
-      if (cfg.areas && cfg.areas.length > 0 && !cfg.areas.some(a => a.selected)) {
-        cfg.areas[0].selected = true;
-      }
-    }
-  }
-  if (state.step === 3) {
-    if (!generateItinerary()) return;
-  }
-  if (state.step < 4) {
-    state.step++;
-    window.scrollTo({top: 0, behavior: 'smooth'});
-    render();
-  }
+  goToStep(state.step + 1);
 }
 
 function prevStep() {
   if (state.step > 1) {
     state.step--;
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    window.scrollTo({top: 0, behavior: 'auto'});
     render();
   }
 }
@@ -3145,8 +3161,10 @@ function renderHeader() {
   const current = state.step;
   let stepsHtml = '';
   for (let i = 1; i <= 4; i++) {
-    const cls = 'step' + (i === current ? ' active' : i < current ? ' done' : '');
-    stepsHtml += `<div class="${cls}">
+    const reached = i <= current || i < current;
+    let cls = 'step' + (i === current ? ' active' : i < current ? ' done' : '');
+    if (!reached) cls += ' disabled';
+    stepsHtml += `<div class="${cls}" onclick="event.stopPropagation(); goToStep(${i});">
       <div class="step-num">${i < current ? '✓' : i}</div>
       <div class="step-label">${stepLabels[i-1]}</div>
     </div>`;
@@ -3227,6 +3245,7 @@ function renderSightList(cfg, key, tabIndex) {
     ].map(s => ({...s, checked: false})), type: 'feature'},
     {title: '🍜 美食推荐', items: cfg.foods, type: 'food'}
   ];
+  if (!cfg.featureChecked) cfg.featureChecked = {};
   const tabData = lists[tabIndex] || lists[0];
   let html = `<div class="tabs">`;
   for (let i = 0; i < lists.length; i++) {
@@ -3237,10 +3256,29 @@ function renderSightList(cfg, key, tabIndex) {
     html += '<div class="sight-list">';
     for (let i = 0; i < tabData.items.length; i++) {
       const f = tabData.items[i];
-      const checked = f.checked ? 'checked' : '';
-      html += `<div class="food-item">
-        <div class="checkbox ${checked}" onclick="event.stopPropagation(); toggleCheckbox(event,'${key}','food',${i});"></div>
+      const checked = !!f.checked;
+      html += `<div class="food-item ${checked ? 'selected' : ''}" onclick="event.stopPropagation(); toggleCheckbox(null,'${key}','food',${i});">
+        <div class="checkbox ${checked ? 'checked' : ''}"></div>
         <div><div class="food-name">${escapeHtml(f.name)}</div><div class="food-desc">${escapeHtml(f.desc || '')}</div></div>
+      </div>`;
+    }
+    html += '</div>';
+  } else if (tabData.type === 'feature') {
+    html += '<div class="sight-list">';
+    for (let i = 0; i < tabData.items.length; i++) {
+      const s = tabData.items[i];
+      const checked = !!cfg.featureChecked[i];
+      html += `<div class="sight-item ${checked ? 'selected' : ''}" onclick="event.stopPropagation(); (function(k,idx){const c=state.cityConfigs[k];if(!c)return;if(!c.featureChecked)c.featureChecked={};c.featureChecked[idx]=!c.featureChecked[idx];render();})('${key}',${i});">
+        <div class="checkbox ${checked ? 'checked' : ''}"></div>
+        <div class="sight-info">
+          <div class="sight-name">${escapeHtml(s.name)}</div>
+          <div class="sight-meta">
+            <span class="sight-duration">⏱️ ${escapeHtml(s.duration || '')}</span>
+            <span class="sight-price">💰 ${escapeHtml(s.price || '')}</span>
+          </div>
+          <div style="margin-top:4px;font-size:11px;color:#666;">🚌 ${escapeHtml(s.traffic || '')}</div>
+          <div class="sight-tip">💡 ${escapeHtml(s.tip || '')}</div>
+        </div>
       </div>`;
     }
     html += '</div>';
@@ -3248,12 +3286,9 @@ function renderSightList(cfg, key, tabIndex) {
     html += '<div class="sight-list">';
     for (let i = 0; i < tabData.items.length; i++) {
       const s = tabData.items[i];
-      const originalIdx = tabData.type === 'feature' ? -1 : i;
-      const isChecked = tabData.type === 'feature' ? false : (s.checked || false);
-      const checkClass = isChecked ? 'checked' : '';
-      const clickHandler = tabData.type === 'feature' ? '' : `onclick="event.stopPropagation(); toggleCheckbox(event,'${key}','sight',${i});"`;
-      html += `<div class="sight-item">
-        <div class="checkbox ${checkClass}" ${clickHandler}></div>
+      const checked = !!s.checked;
+      html += `<div class="sight-item ${checked ? 'selected' : ''}" onclick="event.stopPropagation(); toggleCheckbox(null,'${key}','sight',${i});">
+        <div class="checkbox ${checked ? 'checked' : ''}"></div>
         <div class="sight-info">
           <div class="sight-name">${escapeHtml(s.name)}</div>
           <div class="sight-meta">
@@ -3560,21 +3595,7 @@ function render() {
 
 (function initApp(){
   if (typeof document !== 'undefined' && document.addEventListener) {
-    document.addEventListener('DOMContentLoaded', function(){
-      render();
-      setTimeout(() => {
-        if (state.selectedCities.length === 0) {
-          const preload = ['nanjing','suzhou'];
-          Promise.all(preload.map(k => new Promise(r => {
-            const cfg = getCityData(k);
-            state.selectedCities.push(k);
-            state.cityConfigs[k] = cfg;
-            state.sightTabIndex[k] = 0;
-            r();
-          }))).then(() => { render(); });
-        }
-      }, 300);
-    });
+    document.addEventListener('DOMContentLoaded', function(){ render(); });
   } else {
     render();
   }
