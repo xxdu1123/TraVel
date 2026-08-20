@@ -2867,6 +2867,11 @@ function removeCity(key) {
 }
 
 function toggleProvince(provinceKey) {
+  if (provinceKey === null) {
+    state.currentProvince = null;
+    render();
+    return;
+  }
   if (state.currentProvince === provinceKey) {
     state.currentProvince = null;
   } else {
@@ -2874,6 +2879,7 @@ function toggleProvince(provinceKey) {
     if (p) {
       if (p.cities.length === 1 && !['beijing','tianjin','shanghai','chongqing','hohhot','harbin','changchun'].includes(provinceKey)) {
         addCity(p.cities[0]);
+        return;
       } else {
         state.currentProvince = provinceKey;
       }
@@ -3186,10 +3192,24 @@ function renderSelectedTags() {
   return html + '</div>';
 }
 
+function onSearchInput(value) {
+  state.searchInput = value;
+  const q = value.trim();
+  if (q) {
+    state.searchResults = fuzzySearchCities(q).slice(0, 20);
+    state.currentProvince = null;
+  } else {
+    state.searchResults = [];
+  }
+  render();
+  const input = document.getElementById('citySearchInput');
+  if (input) { input.focus(); input.setSelectionRange(value.length, value.length); }
+}
+
 function renderSearchBox() {
   const loadingHtml = state.searchLoading ? '<span class="loading-spinner"></span>' : '🔍 添加';
   return `<div class="search-box">
-    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="state.searchInput=this.value;" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCity(this.value);}" />
+    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="onSearchInput(this.value);" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCity(this.value);}" />
     <button onclick="event.stopPropagation(); addCity(document.getElementById('citySearchInput').value);" ${state.searchLoading ? 'disabled' : ''}>${loadingHtml}</button>
   </div>`;
 }
@@ -3221,16 +3241,22 @@ function renderProvinceView() {
 function renderStep1() {
   let html = renderSelectedTags();
   html += renderSearchBox();
-  if (state.searchResults.length > 0) {
-    html += '<div class="section-title"><span class="num">🔎</span> 搜索结果（点击添加）</div><div class="city-grid">';
-    for (const key of state.searchResults) {
-      const name = getCityNameByKey(key);
-      const selected = state.selectedCities.includes(key);
-      html += `<div class="city-card ${selected ? 'selected' : ''}" onclick="event.stopPropagation(); addCity('${key}','${key}');">${name}${selected ? '<span class="check">✓</span>' : ''}</div>`;
+  const hasQuery = state.searchInput && state.searchInput.trim().length > 0;
+  if (hasQuery) {
+    if (state.searchResults.length > 0) {
+      html += '<div class="section-title"><span class="num">🔎</span> 搜索结果（点击添加）</div><div class="city-grid">';
+      for (const key of state.searchResults) {
+        const name = getCityNameByKey(key);
+        const selected = state.selectedCities.includes(key);
+        html += `<div class="city-card ${selected ? 'selected' : ''}" onclick="event.stopPropagation(); addCity('${key}','${key}');">${name}${selected ? '<span class="check">✓</span>' : ''}</div>`;
+      }
+      html += '</div>';
+    } else {
+      html += '<div class="empty-state" style="padding:24px;"><div class="icon">🔍</div><div class="text">没有找到「' + escapeHtml(state.searchInput) + '」相关城市<br>试试输入城市名或别名，如"徽州"匹配黄山</div></div>';
     }
-    html += '</div>';
+  } else {
+    html += renderProvinceView();
   }
-  html += renderProvinceView();
   return html;
 }
 
