@@ -40,6 +40,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue"
 .province-card{padding:14px 8px;background:#fff;border:2px solid #e8e4f0;border-radius:14px;text-align:center;cursor:pointer;transition:all 0.25s;font-size:13px;font-weight:600;color:#555;}
 .province-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(118,75,162,0.15);}
 .province-card.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent;}
+
+.route-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.route-card{padding:12px 10px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:2px solid #fed7aa;border-radius:14px;cursor:pointer;transition:all 0.25s;font-size:12px;position:relative;}
+.route-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(234,88,12,0.15);border-color:#fb923c;}
+.route-card.selected{background:linear-gradient(135deg,#ea580c,#c2410c);color:#fff;border-color:transparent;}
+.route-card .route-name{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.route-card .route-days{font-size:11px;opacity:0.8;margin-bottom:4px;}
+.route-card .route-cities{font-size:10px;opacity:0.7;line-height:1.4;}
+.route-card .route-check{position:absolute;top:8px;right:8px;width:20px;height:20px;background:rgba(234,88,12,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#ea580c;font-weight:bold;}
+.route-card.selected .route-check{background:rgba(255,255,255,0.25);color:#fff;}
 .back-btn{display:inline-flex;align-items:center;gap:4px;padding:10px 16px;background:#f5f3fa;border:2px solid #e8e4f0;border-radius:20px;font-size:13px;color:#764ba2;cursor:pointer;margin-bottom:12px;font-weight:600;transition:all 0.2s;position:relative;z-index:5;}
 .back-btn:hover{background:#fff;border-color:#764ba2;}
 .back-btn:active{transform:scale(0.96);}
@@ -219,6 +229,28 @@ const PROVINCES = [
   {key:'guizhou',name:'贵州',cities:['guiyang','zunyi']},
   {key:'sichuan',name:'四川',cities:['chengdu','leshan','emeishan','jiuzhaigou']},
   {key:'hainan',name:'海南',cities:['haikou','sanya']}
+];
+
+const ROUTES = [
+  {key:'qinggan',name:'🛣️ 青甘大环线',days:'建议7-9天',cities:['xining','haixi','dunhuang','jiayuguan','zhangye'],desc:'西宁→青海湖→茶卡→大柴旦→敦煌→嘉峪关→张掖→祁连'},
+  {key:'chuanxi',name:'🏔️ 川西环线',days:'建议7-10天',cities:['chengdu','leshan','emeishan','jiuzhaigou'],desc:'成都→都江堰→四姑娘山→新都桥→稻城亚丁→色达'},
+  {key:'beijiang',name:'🌲 北疆环线',days:'建议8-12天',cities:['urumqi','aletai','yili','tulufan'],desc:'乌鲁木齐→天山天池→喀纳斯→禾木→赛里木湖→那拉提→独库'},
+  {key:'nanjiang',name:'🏜️ 南疆环线',days:'建议8-12天',cities:['urumqi','tulufan','kashi'],desc:'乌鲁木齐→吐鲁番→库车→喀什→帕米尔高原→和田→塔县'},
+  {key:'dianxibei',name:'🌸 滇西北环线',days:'建议6-9天',cities:['kunming','dali','lijiang','shangrila'],desc:'昆明→大理→丽江→香格里拉→泸沽湖→虎跳峡'},
+  {key:'dianxi',name:'♨️ 滇西腾冲线',days:'建议6-8天',cities:['kunming','dali','baoshan'],desc:'昆明→大理→腾冲热海→和顺古镇→瑞丽→芒市'},
+  {key:'jiangnan',name:'🏮 江南水乡环线',days:'建议7-10天',cities:['nanjing','yangzhou','zhenjiang','changzhou','wuxi','suzhou','shanghai','jiaxing','hangzhou'],desc:'南京→扬州→苏州→上海→嘉兴乌镇→杭州西湖'},
+  {key:'jiaodong',name:'🌊 胶东半岛环线',days:'建议5-7天',cities:['jinan','taian','jining','qingdao','weihai','yantai'],desc:'济南→泰山→曲阜→青岛→威海→烟台→蓬莱'},
+  {key:'huizhou',name:'🏘️ 皖南徽州环线',days:'建议4-6天',cities:['hefei','huangshan','shangrao','jingdezhen'],desc:'合肥→黄山→宏村西递→婺源篁岭→景德镇'},
+  {key:'xiangxi',name:'⛰️ 湘西环线',days:'建议5-7天',cities:['changsha','zhangjiajie','hengyang'],desc:'长沙→张家界武陵源→凤凰古城→芙蓉镇→衡山'},
+  {key:'hainan',name:'🌴 海南环岛',days:'建议5-8天',cities:['haikou','sanya'],desc:'海口→文昌→琼海→万宁→三亚→五指山→儋州'},
+  {key:'dongbei',name:'❄️ 东北冰雪环线',days:'建议5-8天',cities:['harbin','changchun','shenyang','dalian'],desc:'哈尔滨冰雪大世界→雪乡→亚布力→长春→沈阳→大连'},
+  {key:'jinshang',name:'🏯 晋商文化环线',days:'建议4-6天',cities:['taiyuan','pingyao','xinzhou','datong'],desc:'太原→平遥古城→乔家大院→五台山→大同云冈石窟'},
+  {key:'zhongyuan',name:'👑 中原古都环线',days:'建议4-6天',cities:['zhengzhou','luoyang','kaifeng','anyang'],desc:'郑州→洛阳龙门石窟→白马寺→开封清明上河园→安阳殷墟'},
+  {key:'fujian',name:'🕌 福建土楼+厦门',days:'建议5-7天',cities:['fuzhou','quanzhou','xiamen','longyan'],desc:'福州→泉州古城→厦门鼓浪屿→永定土楼→南靖土楼'},
+  {key:'guangxi',name:'🏞️ 桂北山水环线',days:'建议5-7天',cities:['guilin','nanning','beihai'],desc:'桂林漓江→阳朔→龙脊梯田→南宁→北海银滩→涠洲岛'},
+  {key:'yunnan',name:'🦚 云南全景大环线',days:'建议12-15天',cities:['kunming','dali','lijiang','shangrila','xishuangbanna','baoshan'],desc:'昆明→大理→丽江→香格里拉→西双版纳→腾冲'},
+  {key:'xizang',name:'🗻 西藏经典环线',days:'建议8-12天',cities:['lhasa','linzhi'],desc:'拉萨→布达拉宫→大昭寺→林芝→羊湖→纳木错'},
+  {key:'neimenggu',name:'🐎 内蒙草原环线',days:'建议5-8天',cities:['hohhot'],desc:'呼和浩特→希拉穆仁草原→响沙湾→额济纳旗胡杨林→呼伦贝尔'}
 ];
 
 const CITY_ALIASES = {
@@ -5055,7 +5087,8 @@ const state = {
   checkedItems: {},
   searchInput: '',
   searchLoading: false,
-  searchResults: []
+  searchResults: [],
+  selectedRoutes: new Set()
 };
 
 function showToast(msg, duration = 2000) {
@@ -5208,6 +5241,45 @@ function toggleCityInProvince(cityKey) {
   } else {
     addCity(cityKey, cityKey);
   }
+}
+
+function toggleRoute(routeKey) {
+  const route = ROUTES.find(r => r.key === routeKey);
+  if (!route) return;
+  if (state.selectedRoutes.has(routeKey)) {
+    state.selectedRoutes.delete(routeKey);
+    render();
+    return;
+  }
+  state.selectedRoutes.add(routeKey);
+  let added = 0;
+  for (const cityKey of route.cities) {
+    if (!state.selectedCities.includes(cityKey)) {
+      const cfg = getCityData(cityKey);
+      state.selectedCities.push(cityKey);
+      state.cityConfigs[cityKey] = cfg;
+      state.sightTabIndex[cityKey] = 0;
+      added++;
+    }
+  }
+  state.currentCityIndex = Math.max(0, state.selectedCities.length - 1);
+  showToast('已添加「' + route.name.replace(/^[^\s]+\s*/, '') + '」' + route.cities.length + '个城市' + (added > 0 ? '（新增' + added + '个）' : '（均已在行程中）'));
+  render();
+}
+
+function renderRoutesView() {
+  let html = '<div class="section-title"><span class="num">🛣️</span> 热门环线推荐（一键添加全部城市）</div><div class="route-grid">';
+  for (const r of ROUTES) {
+    const selected = state.selectedRoutes.has(r.key);
+    const allAdded = r.cities.every(c => state.selectedCities.includes(c));
+    const showCheck = selected || allAdded;
+    html += `<div class="route-card ${showCheck ? 'selected' : ''}" onclick="event.stopPropagation(); toggleRoute('${r.key}');">
+      <div class="route-name">${r.name}${showCheck ? '<span class="route-check">✓</span>' : ''}</div>
+      <div class="route-days">${r.days}</div>
+      <div class="route-cities">${r.desc}</div>
+    </div>`;
+  }
+  return html + '</div>';
 }
 
 function handleCheckbox(e, key, type, index) {
@@ -5570,6 +5642,9 @@ function renderStep1() {
     }
   } else {
     html += renderProvinceView();
+    if (!state.currentProvince) {
+      html += renderRoutesView();
+    }
   }
   return html;
 }
