@@ -5088,7 +5088,8 @@ const state = {
   searchInput: '',
   searchLoading: false,
   searchResults: [],
-  selectedRoutes: new Set()
+  selectedRoutes: new Set(),
+  isComposing: false
 };
 
 function showToast(msg, duration = 2000) {
@@ -5580,6 +5581,7 @@ function renderSelectedTags() {
 
 function onSearchInput(value) {
   state.searchInput = value;
+  if (state.isComposing) return;
   const q = value.trim();
   if (q) {
     state.searchResults = fuzzySearchCities(q).slice(0, 20);
@@ -5592,10 +5594,19 @@ function onSearchInput(value) {
   if (input) { input.focus(); input.setSelectionRange(value.length, value.length); }
 }
 
+function onCompositionStart() {
+  state.isComposing = true;
+}
+
+function onCompositionEnd(value) {
+  state.isComposing = false;
+  onSearchInput(value);
+}
+
 function renderSearchBox() {
   const loadingHtml = state.searchLoading ? '<span class="loading-spinner"></span>' : '🔍 添加';
   return `<div class="search-box">
-    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="onSearchInput(this.value);" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCity(this.value);}" />
+    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="onSearchInput(this.value);" oncompositionstart="onCompositionStart();" oncompositionend="onCompositionEnd(this.value);" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCity(this.value);}" />
     <button onclick="event.stopPropagation(); addCity(document.getElementById('citySearchInput').value);" ${state.searchLoading ? 'disabled' : ''}>${loadingHtml}</button>
   </div>`;
 }
