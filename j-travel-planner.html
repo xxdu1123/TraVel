@@ -5579,9 +5579,12 @@ function renderSelectedTags() {
   return html + '</div>';
 }
 
-function onSearchInput(value) {
+function onSearchInput(evt) {
+  const input = evt && evt.target ? evt.target : document.getElementById('citySearchInput');
+  if (!input) return;
+  const value = input.value;
   state.searchInput = value;
-  if (state.isComposing) return;
+  if (state.isComposing || (evt && evt.isComposing)) return;
   const q = value.trim();
   if (q) {
     state.searchResults = fuzzySearchCities(q).slice(0, 20);
@@ -5589,24 +5592,49 @@ function onSearchInput(value) {
   } else {
     state.searchResults = [];
   }
-  render();
-  const input = document.getElementById('citySearchInput');
-  if (input) { input.focus(); input.setSelectionRange(value.length, value.length); }
+  if (state._searchRaf) cancelAnimationFrame(state._searchRaf);
+  state._searchRaf = requestAnimationFrame(() => {
+    state._searchRaf = null;
+    render();
+  });
+}
+
+function onSearchKeyDown(evt) {
+  if (state.isComposing || evt.isComposing || evt.keyCode === 229) return;
+  if (evt.key === 'Enter') {
+    evt.preventDefault();
+    addCity(evt.target.value);
+  }
 }
 
 function onCompositionStart() {
   state.isComposing = true;
 }
 
-function onCompositionEnd(value) {
+function onCompositionEnd(evt) {
+  const input = evt && evt.target ? evt.target : document.getElementById('citySearchInput');
   state.isComposing = false;
-  onSearchInput(value);
+  if (input) {
+    state.searchInput = input.value;
+    const q = input.value.trim();
+    if (q) {
+      state.searchResults = fuzzySearchCities(q).slice(0, 20);
+      state.currentProvince = null;
+    } else {
+      state.searchResults = [];
+    }
+  }
+  if (state._searchRaf) cancelAnimationFrame(state._searchRaf);
+  state._searchRaf = requestAnimationFrame(() => {
+    state._searchRaf = null;
+    render();
+  });
 }
 
 function renderSearchBox() {
   const loadingHtml = state.searchLoading ? '<span class="loading-spinner"></span>' : '🔍 添加';
   return `<div class="search-box">
-    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="onSearchInput(this.value);" oncompositionstart="onCompositionStart();" oncompositionend="onCompositionEnd(this.value);" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCity(this.value);}" />
+    <input type="text" id="citySearchInput" placeholder="输入城市名（如：北京、拉萨、三亚）" value="${escapeHtml(state.searchInput)}" oninput="onSearchInput(event);" oncompositionstart="onCompositionStart();" oncompositionend="onCompositionEnd(event);" onkeydown="onSearchKeyDown(event);" />
     <button onclick="event.stopPropagation(); addCity(document.getElementById('citySearchInput').value);" ${state.searchLoading ? 'disabled' : ''}>${loadingHtml}</button>
   </div>`;
 }
@@ -6001,6 +6029,13 @@ function escapeHtml(str) {
 function render() {
   const app = document.getElementById('app');
   if (!app) return;
+  const oldInput = document.getElementById('citySearchInput');
+  const savedInput = oldInput ? {
+    focused: document.activeElement === oldInput,
+    selStart: oldInput.selectionStart,
+    selEnd: oldInput.selectionEnd,
+    value: oldInput.value
+  } : null;
   let body = '';
   if (state.step === 4) {
     body = renderStep4();
@@ -6017,6 +6052,15 @@ function render() {
     body += '</div>';
   }
   app.innerHTML = renderHeader() + body + renderFooter();
+  if (savedInput && savedInput.focused) {
+    const newInput = document.getElementById('citySearchInput');
+    if (newInput) {
+      newInput.focus();
+      const pos = Math.min(savedInput.selStart, newInput.value.length);
+      const posEnd = Math.min(savedInput.selEnd, newInput.value.length);
+      try { newInput.setSelectionRange(pos, posEnd); } catch(e) {}
+    }
+  }
 }
 
 (function initApp(){
